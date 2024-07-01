@@ -2,8 +2,10 @@ package bootstrap
 
 import (
 	"athena/src/api"
+	"athena/src/cache"
 	"athena/src/database"
 	"athena/src/pkg/i18n"
+	"athena/src/queue"
 	"log"
 	"os"
 	"os/signal"
@@ -22,6 +24,26 @@ func Init() (err error) {
 		log.Fatalf("I18n Service: Failed to Initialize. %v", err)
 	}
 	log.Println("I18n Service: Initialized Successfully.")
+
+	// Initialize cache
+	err = cache.Init()
+	if err != nil {
+		log.Fatalf("Cache Service: Failed to Initialize. %v", err)
+	}
+	log.Println("Cache Service: Initialized Successfully.")
+
+	defer func() {
+		if err = cache.GetInstance().Close(); err != nil {
+			log.Fatalf("Failed to close cache connection: %v", err)
+		}
+	}()
+
+	// Initialize queue
+	err = queue.Init()
+	if err != nil {
+		log.Fatalf("Queue Service: Failed to Initialize. %v", err)
+	}
+	log.Println("Queue Service: Initialized Successfully.")
 
 	// Initialize database
 	err = database.Init()
