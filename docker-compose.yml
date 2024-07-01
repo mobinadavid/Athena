@@ -1,0 +1,74 @@
+services:
+
+  # App
+  app:
+    build:
+      context: .
+      dockerfile: build/docker/app/Dockerfile
+    container_name: app.${APP_HOST}
+    restart: unless-stopped
+    volumes:
+      - ./build/certs/app:/etc/ssl/athena/certs:ro
+    tty: true
+    environment:
+      TZ: ${APP_TZ}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - athena
+
+  # Nginx
+  nginx:
+    image: nginx:stable-alpine
+    container_name: nginx.${APP_HOST}
+    restart: unless-stopped
+    ports:
+      - 8221:8221
+    tty: true
+    depends_on:
+      - app
+    environment:
+      SERVER_NAME: ${APP_HOST}
+      SERVER_PORT: 8221
+      PROXY_PASS: https://app.${APP_HOST}:${APP_PORT}
+      TZ: ${APP_TZ}
+    volumes:
+      - ./build/certs/nginx:/etc/nginx/certs:ro
+      - ./build/docker/nginx:/etc/nginx/templates:ro
+    networks:
+      - athena
+
+  # Postgres
+  postgres:
+    image: postgres:alpine
+    container_name: postgres.${APP_HOST}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+      TZ: ${APP_TZ}
+    volumes:
+      - ./build/certs/postgresql:/var/lib/postgresql/certs:ro
+      - ./build/docker/postgresql/postgres.conf:/etc/postgresql.conf:ro
+      - ./build/docker/postgresql/pg_hba.conf:/etc/pg_hba.conf:ro
+      - ./build/docker/postgresql/postgres-init.sh:/docker-entrypoint-initdb.d/postgres-init.sh:ro
+      - postgres-data:/var/lib/postgresql/data
+    command: ["postgres", "-c", "config_file=/etc/postgresql.conf", "-c", "hba_file=/etc/pg_hba.conf"]
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USERNAME}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - athena
+
+# Persistent Volumes
+volumes:
+  postgres-data:
+
+# Networks
+networks:
+  athena:
+    driver: bridge

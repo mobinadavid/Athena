@@ -1,0 +1,13 @@
+{
+  "invalid-payload": "الحمولة المعطاة غير صالحة.",
+  "invalid-iranian-national-identity-code": "رمز الهوية الوطنية الإيرانية المعطى غير صالح.",
+  "invalid-iranian-mobile": "الجوال المعطى غير صالح.",
+  "invalid-iranian-phone": "الهاتف المعطى غير صالح.",
+  "invalid-iranian-postal-code": "الرمز البريدي المعطى غير صالح.",
+  "invalid-iranian-bank-card-number": "رقم بطاقة البنك الإيراني المعطى غير صالح.",
+  "invalid-iranian-bank-sheba-number": "رقم شيبا البنك الإيراني المعطى غير صالح.",
+  "invalid-jalali-date": "يجب أن تكون التاريخ المعطى تاريخاً جلالياً مُنسقاً صالحاً.",
+  "invalid-is-uuid": "القيمة المقدمة ليست UUID صالحة.",
+  "invalid-exists": "القيمة المقدمة غير صالحة.",
+  "invalid-is-strong-password": "كلمة المرور المقدمة غير قوية بما فيه الكفاية."
+}

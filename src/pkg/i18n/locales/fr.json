@@ -1,0 +1,13 @@
+{
+  "invalid-payload": "Le payload fourni est invalide.",
+  "invalid-iranian-national-identity-code": "Le code d'identité nationale iranien fourni est invalide.",
+  "invalid-iranian-mobile": "Le mobile fourni est invalide.",
+  "invalid-iranian-phone": "Le téléphone fourni est invalide.",
+  "invalid-iranian-postal-code": "Le code postal fourni est invalide.",
+  "invalid-iranian-bank-card-number": "Le numéro de carte bancaire iranien fourni est invalide.",
+  "invalid-iranian-bank-sheba-number": "Le numéro sheba de banque iranien fourni est invalide.",
+  "invalid-jalali-date": "La date fournie doit être une date jalali formatée valide.",
+  "invalid-is-uuid": "La valeur fournie n'est pas un UUID valide.",
+  "invalid-exists": "La valeur fournie est invalide.",
+  "invalid-is-strong-password": "Le mot de passe fourni n'est pas assez fort."
+}

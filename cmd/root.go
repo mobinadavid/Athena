@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"athena/cmd/app"
+	"athena/cmd/database"
 	"athena/src/config"
 	"github.com/spf13/cobra"
 )
@@ -18,7 +20,10 @@ func Execute() error {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.AddCommand()
+	rootCmd.AddCommand(
+		app.AppCmd,
+		database.DatabaseCmd,
+	)
 }
 
 func initConfig() {

@@ -1,0 +1,17 @@
+{
+  "request-successful": "درخواست با موفقیت اجرا شد.",
+  "request-unauthenticated": "پیش از ادامه، وارد حساب کاربری خود شوید.",
+  "request-unauthorized": "حساب شما دسترسی لازم برای درخواست مدنظر را ندارد.",
+
+  "invalid-payload": "درخواست ارسال شده معتبر نمیباشد.",
+  "invalid-iranian-national-identity-code": "کد ملی ارسال شده معتبر نمیباشد.",
+  "invalid-iranian-mobile": "شماره موبایل ارسال شده معتبر نمیباشد.",
+  "invalid-iranian-phone": "شماره ثابت ارسال شده معتبر نمیباشد.",
+  "invalid-iranian-postal-code": "کدپستی ارسال شده معتبر نمیباشد.",
+  "invalid-iranian-bank-card-number": "شماره کارت ارسال شده معتبر نمیباشد.",
+  "invalid-iranian-bank-sheba-number": "شناسه شبا ارسال شده معتبر نمیباشد.",
+  "invalid-jalali-date": "تاریخ ارسال شده معتبر نمیباشد.",
+  "invalid-is-uuid": "مقدار ارسال شده یک uuid معتبر نمیباشد.",
+  "invalid-exists": "مقدار ارسال شده نامعتبر است.",
+  "invalid-is-strong-password": "گذرواژه ارسال شده ضعیف میباشد."
+}

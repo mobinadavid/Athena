@@ -1,0 +1,13 @@
+{
+  "invalid-payload": "Verilen yük geçersiz.",
+  "invalid-iranian-national-identity-code": "Verilen İran ulusal kimlik kodu geçersiz.",
+  "invalid-iranian-mobile": "Verilen mobil geçersiz.",
+  "invalid-iranian-phone": "Verilen telefon geçersiz.",
+  "invalid-iranian-postal-code": "Verilen posta kodu geçersiz.",
+  "invalid-iranian-bank-card-number": "Verilen İran banka kartı numarası geçersiz.",
+  "invalid-iranian-bank-sheba-number": "Verilen İran banka şeba numarası geçersiz.",
+  "invalid-jalali-date": "Verilen tarih geçerli bir celali tarihi formatında olmalıdır.",
+  "invalid-is-uuid": "Sağlanan değer geçerli bir UUID değil.",
+  "invalid-exists": "Sağlanan değer geçersiz.",
+  "invalid-is-strong-password": "Verilen şifre yeterince güçlü değil."
+}
