@@ -5,7 +5,6 @@ import (
 	"athena/src/cache"
 	"athena/src/database"
 	"athena/src/pkg/i18n"
-	"athena/src/queue"
 	"log"
 	"os"
 	"os/signal"
@@ -39,11 +38,11 @@ func Init() (err error) {
 	}()
 
 	// Initialize queue
-	err = queue.Init()
-	if err != nil {
-		log.Fatalf("Queue Service: Failed to Initialize. %v", err)
-	}
-	log.Println("Queue Service: Initialized Successfully.")
+	//err = queue.Init()
+	//if err != nil {
+	//	log.Fatalf("Queue Service: Failed to Initialize. %v", err)
+	//}
+	//log.Println("Queue Service: Initialized Successfully.")
 
 	// Initialize database
 	err = database.Init()

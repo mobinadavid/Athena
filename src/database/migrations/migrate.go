@@ -23,7 +23,7 @@ func init() {
 
 	m, err := migrate.NewWithDatabaseInstance(
 		"file://src/database/migrations",
-		"postgres",
+		"postgresql",
 		driver,
 	)
 
