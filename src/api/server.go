@@ -3,6 +3,7 @@ package api
 import (
 	"athena/src/api/http/middlewares"
 	"athena/src/config"
+	"athena/src/services/blockchain/route"
 	"fmt"
 	"github.com/gin-contrib/secure"
 	"github.com/gin-gonic/gin"
@@ -84,9 +85,8 @@ func initServer() error {
 
 	v1 := router.Group("api/v1")
 	{
-		v1.Use()
+		route.BlockchainRouter(v1)
 	}
-
 	// Run App.
 	if err := router.RunTLS(
 		fmt.Sprintf(":%s", configs.Get("APP_PORT")),

@@ -1,5 +1,5 @@
-create table if not exists blockchains
-(
+create table if not exists blockchains (
+
     id          bigserial primary key,
     uuid        uuid default uuid_generate_v4(),
     title       jsonb,
@@ -12,3 +12,4 @@ create table if not exists blockchains
 
 create index if not exists idx_blockchains_deleted_at
     on blockchains (deleted_at);
+

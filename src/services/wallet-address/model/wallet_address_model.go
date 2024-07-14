@@ -6,17 +6,19 @@ import (
 	"time"
 )
 
-type Blockchain struct {
-	ID   uint      `gorm:"primaryKey" json:"id"`
-	UUID uuid.UUID `gorm:"default:uuid_generate_v4()" json:"uuid"`
-	//	Walet
-	IsActive  *bool          `gorm:"type:bool;default:true" json:"is_active"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
+type WalletAddress struct {
+	ID            uint           `gorm:"primaryKey" json:"id"`
+	UUID          uuid.UUID      `gorm:"default:uuid_generate_v4()" json:"uuid"`
+	WalletAddress string         `gorm:"unique" json:"wallet_address"`
+	IsActive      *bool          `gorm:"type:bool;default:true" json:"is_active"`
+	AllocatedAt   time.Time      `gorm:"default:null" json:"allocated_at"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	DeletedAt     gorm.DeletedAt `gorm:"index" json:"deleted_at"`
+	BlockchainID  uint           `gorm:"not null" json:"blockchain_id"`
 }
 
 // TableName sets the table name of the model
-func (Blockchain) TableName() string {
-	return "blockchains"
+func (WalletAddress) TableName() string {
+	return "wallet_addresses"
 }

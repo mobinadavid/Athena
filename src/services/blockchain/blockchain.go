@@ -12,15 +12,17 @@ var SetContainer = wire.NewSet(
 	ProvideBlockchainController,
 	ProvideBlockchainService,
 	ProvideBlockchainRepository,
+	wire.Bind(new(service.IBlockChainService), new(*service.BlockchainService)),
+	wire.Bind(new(repository.IBlockchainRepository), new(*repository.BlockchainRepository)),
 )
 
-func ProvideBlockchainController(service *service.BlockchainService) *controller.BlockchainController {
+func ProvideBlockchainController(service service.IBlockChainService) *controller.BlockchainController {
 	return &controller.BlockchainController{
 		IBlockchainService: service,
 	}
 }
 
-func ProvideBlockchainService(repository *repository.BlockchainRepository) *service.BlockchainService {
+func ProvideBlockchainService(repository repository.IBlockchainRepository) *service.BlockchainService {
 	return &service.BlockchainService{
 		IBlockchainRepository: repository,
 	}
