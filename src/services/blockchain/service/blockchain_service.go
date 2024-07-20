@@ -51,9 +51,9 @@ func (service *BlockchainService) GetByUuid(uuid *uuid.UUID) (*model.Blockchain,
 
 func (service *BlockchainService) Create(request *request.CreateBlockchainRequest) (*model.Blockchain, error) {
 	category := &model.Blockchain{
-		Symbol:   request.Symbol,
-		Title:    request.Title,
-		IsActive: request.IsActive,
+		NativeAsset: request.NativeAsset,
+		Title:       request.Title,
+		IsActive:    request.IsActive,
 	}
 	faqOrm, err := service.IBlockchainRepository.Create(category)
 	if err != nil {
@@ -68,8 +68,8 @@ func (service *BlockchainService) Delete(uuid *uuid.UUID) error {
 
 func (service *BlockchainService) Update(uuid *uuid.UUID, request *request.CreateBlockchainRequest) (*model.Blockchain, error) {
 	return service.IBlockchainRepository.Update(uuid, &model.Blockchain{
-		Symbol:   request.Symbol,
-		Title:    request.Title,
-		IsActive: request.IsActive,
+		NativeAsset: request.NativeAsset,
+		Title:       request.Title,
+		IsActive:    request.IsActive,
 	})
 }

@@ -101,7 +101,7 @@ func (controller *BlockchainController) Create(c *gin.Context) {
 	response.Api(c).
 		SetStatusCode(http.StatusCreated).
 		SetData(map[string]interface{}{
-			"frequently_asked_questions": blockchain,
+			"blockchain": blockchain,
 		}).
 		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
 		Send()

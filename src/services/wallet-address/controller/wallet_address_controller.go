@@ -1,7 +1,183 @@
 package controller
 
-import "athena/src/services/wallet-address/service"
+import (
+	"athena/src/api/http/response"
+	"athena/src/database/scopes"
+	"athena/src/pkg/i18n"
+	"athena/src/pkg/validator"
+	"athena/src/services/wallet-address/request"
+	"athena/src/services/wallet-address/service"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"net/http"
+)
 
 type WalletAddressController struct {
-	IWalletAddressService *service.WalletAddressService
+	IWalletAddressService service.IWalletAddressService
+}
+
+func (controller *WalletAddressController) GetList(c *gin.Context) {
+
+	var walletAddress *scopes.PaginateModel
+
+	walletAddress, err := controller.IWalletAddressService.GetList(
+		uint(c.GetInt("page")),
+		uint(c.GetInt("limit")),
+	)
+
+	if err != nil {
+		response.Api(c).SetStatusCode(http.StatusNotFound).Send()
+		return
+	}
+
+	response.Api(c).
+		SetStatusCode(http.StatusOK).
+		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
+		SetData(map[string]interface{}{
+			"walletAddresses": walletAddress,
+		}).Send()
+	return
+}
+
+func (controller *WalletAddressController) GetByUuid(c *gin.Context) {
+
+	uuidStr := c.Param("uuid")
+
+	// Parse the string to a UUID
+	id, err := uuid.Parse(uuidStr)
+	if err != nil {
+		response.Api(c).Send()
+		return
+	}
+
+	walletAddress, err := controller.IWalletAddressService.GetByUuid(&id)
+
+	if err != nil {
+		response.Api(c).
+			SetStatusCode(http.StatusNotFound).
+			SetMessage(err.Error()).
+			Send()
+		return
+	}
+
+	response.Api(c).
+		SetStatusCode(http.StatusOK).
+		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
+		SetData(map[string]interface{}{
+			"walletAddress:": walletAddress,
+		}).
+		Send()
+	return
+}
+
+func (controller *WalletAddressController) Create(c *gin.Context) {
+	var req request.CreateWalletAddressRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Api(c).Send()
+		return
+	}
+
+	// Validate the payload.
+	if err := validator.Validate(&req, c.GetString("locale")); err != nil {
+		response.Api(c).
+			SetStatusCode(http.StatusUnprocessableEntity).
+			SetErrors(err).
+			Send()
+		return
+	}
+
+	walletAddress, err := controller.IWalletAddressService.Create(&req)
+
+	if err != nil {
+		response.Api(c).
+			SetMessage(err.Error()).
+			Send()
+		return
+	}
+
+	// Return response.
+	response.Api(c).
+		SetStatusCode(http.StatusCreated).
+		SetData(map[string]interface{}{
+			"walletAddress": walletAddress,
+		}).
+		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
+		Send()
+}
+
+func (controller *WalletAddressController) Delete(c *gin.Context) {
+	//Get the UUID from the URL parameter
+	uuidStr := c.Param("uuid")
+
+	// Parse the string to a UUID
+	id, err := uuid.Parse(uuidStr)
+	if err != nil {
+		response.Api(c).Send()
+		return
+	}
+	err = controller.IWalletAddressService.Delete(&id)
+
+	if err != nil {
+		response.Api(c).
+			SetStatusCode(http.StatusNotFound).
+			SetMessage(err.Error()).
+			Send()
+		return
+	}
+
+	response.Api(c).
+		SetStatusCode(http.StatusOK).
+		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
+		SetData(map[string]interface{}{}).
+		Send()
+	return
+}
+
+func (controller *WalletAddressController) Update(c *gin.Context) {
+	// Get the UUID from the URL parameter
+	uuidStr := c.Param("uuid")
+
+	// Parse the string to a UUID
+	id, err := uuid.Parse(uuidStr)
+	if err != nil {
+		response.Api(c).Send()
+		return
+	}
+
+	var req request.CreateWalletAddressRequest
+
+	// Bind check payload.
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Api(c).Send()
+		return
+	}
+
+	// Validate the payload.
+	if err := validator.Validate(&req, c.GetString("locale")); err != nil {
+		response.Api(c).
+			SetStatusCode(http.StatusUnprocessableEntity).
+			SetErrors(err).
+			Send()
+		return
+	}
+
+	walletAddress, err := controller.IWalletAddressService.Update(&id, &req)
+
+	if err != nil {
+		response.Api(c).
+			SetMessage(err.Error()).
+			Send()
+		return
+	}
+
+	// Return response.
+	response.Api(c).
+		SetStatusCode(http.StatusCreated).
+		SetData(map[string]interface{}{
+			"walletAddress": walletAddress,
+		}).
+		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
+		Send()
+
 }

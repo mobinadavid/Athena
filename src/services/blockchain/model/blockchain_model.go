@@ -9,15 +9,15 @@ import (
 )
 
 type Blockchain struct {
-	ID              uint                   `gorm:"primaryKey" json:"id"`
-	UUID            uuid.UUID              `gorm:"default:uuid_generate_v4()" json:"uuid"`
-	Symbol          string                 `gorm:"not null" json:"symbol"`
-	Title           datatypes.JSON         `gorm:"type:json" json:"title"`
-	IsActive        *bool                  `gorm:"type:bool;default:true" json:"is_active"`
-	CreatedAt       time.Time              `json:"created_at"`
-	UpdatedAt       time.Time              `json:"updated_at"`
-	DeletedAt       gorm.DeletedAt         `gorm:"index" json:"deleted_at"`
-	WalletAddresses []*model.WalletAddress `gorm:"foreignKey:BlockchainID" json:"wallet_addresses"`
+	ID              uint                  `gorm:"primaryKey" json:"id"`
+	UUID            uuid.UUID             `gorm:"default:uuid_generate_v4()" json:"uuid"`
+	NativeAsset     string                `gorm:"not null" json:"native-asset"`
+	Title           datatypes.JSON        `gorm:"type:json" json:"title"`
+	IsActive        *bool                 `gorm:"type:bool;default:true" json:"is_active"`
+	CreatedAt       time.Time             `json:"created_at"`
+	UpdatedAt       time.Time             `json:"updated_at"`
+	DeletedAt       gorm.DeletedAt        `gorm:"index" json:"deleted_at"`
+	WalletAddresses []model.WalletAddress `gorm:"foreignKey:BlockchainID" json:"wallet_addresses"`
 }
 
 // TableName sets the table name of the model

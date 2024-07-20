@@ -5,10 +5,13 @@ import (
 	"athena/src/database"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"log"
 )
 
-var migration *migrate.Migrate
+var blockchainMigration *migrate.Migrate
+var walletMigration *migrate.Migrate
+var explorerMigration *migrate.Migrate
 
 func init() {
 	config.Init()
@@ -21,9 +24,9 @@ func init() {
 		log.Fatalln(err)
 	}
 
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://src/database/migrations",
-		"postgresql",
+	blockchainMigration, err = migrate.NewWithDatabaseInstance(
+		"file://src/services/blockchain/migration",
+		"postgres",
 		driver,
 	)
 
@@ -31,13 +34,55 @@ func init() {
 		log.Fatalln(err)
 	}
 
-	migration = m
+	walletMigration, err = migrate.NewWithDatabaseInstance(
+		"file://src/services/wallet-address/migration",
+		"postgres",
+		driver,
+	)
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	explorerMigration, err = migrate.NewWithDatabaseInstance(
+		"file://src/services/blockchain-explorer/migration",
+		"postgres",
+		driver,
+	)
+
+	if err != nil {
+		log.Fatalln(err)
+	}
 }
 
 func Up() error {
-	return migration.Up()
+	if err := blockchainMigration.Up(); err != nil && err != migrate.ErrNoChange {
+		return err
+	}
+
+	if err := walletMigration.Up(); err != nil && err != migrate.ErrNoChange {
+		return err
+	}
+
+	if err := explorerMigration.Up(); err != nil && err != migrate.ErrNoChange {
+		return err
+	}
+
+	return nil
 }
 
 func Down() error {
-	return migration.Down()
+	if err := blockchainMigration.Down(); err != nil && err != migrate.ErrNoChange {
+		return err
+	}
+
+	if err := walletMigration.Down(); err != nil && err != migrate.ErrNoChange {
+		return err
+	}
+
+	if err := explorerMigration.Down(); err != nil && err != migrate.ErrNoChange {
+		return err
+	}
+
+	return nil
 }

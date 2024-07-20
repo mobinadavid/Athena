@@ -4,6 +4,8 @@ import (
 	"athena/src/api/http/middlewares"
 	"athena/src/config"
 	"athena/src/services/blockchain/route"
+	walletRoute "athena/src/services/wallet-address/route"
+
 	"fmt"
 	"github.com/gin-contrib/secure"
 	"github.com/gin-gonic/gin"
@@ -86,6 +88,7 @@ func initServer() error {
 	v1 := router.Group("api/v1")
 	{
 		route.BlockchainRouter(v1)
+		walletRoute.WalletAddressRouter(v1)
 	}
 	// Run App.
 	if err := router.RunTLS(

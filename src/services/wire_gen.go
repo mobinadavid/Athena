@@ -10,7 +10,7 @@ import (
 	"athena/src/database"
 	"athena/src/services/blockchain"
 	"athena/src/services/blockchain/controller"
-	"athena/src/services/wallet-address"
+	blockchain2 "athena/src/services/wallet-address"
 	controller2 "athena/src/services/wallet-address/controller"
 )
 
@@ -21,9 +21,9 @@ func GetContainer() *Container {
 	blockchainRepository := blockchain.ProvideBlockchainRepository(databaseDatabase)
 	blockchainService := blockchain.ProvideBlockchainService(blockchainRepository)
 	blockchainController := blockchain.ProvideBlockchainController(blockchainService)
-	walletAddressRepository := wallet_address.ProvideWalletAddressRepository(databaseDatabase)
-	walletAddressService := wallet_address.ProvideWalletAddressService(walletAddressRepository)
-	walletAddressController := wallet_address.ProvideWalletAddressController(walletAddressService)
+	walletAddressRepository := blockchain2.ProvideWalletAddressRepository(databaseDatabase)
+	walletAddressService := blockchain2.ProvideWalletAddressService(walletAddressRepository)
+	walletAddressController := blockchain2.ProvideWalletAddressController(walletAddressService)
 	container := &Container{
 		BlockchainController:    blockchainController,
 		WalletAddressController: walletAddressController,

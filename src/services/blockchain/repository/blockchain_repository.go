@@ -29,7 +29,7 @@ func (repository *BlockchainRepository) GetList(page uint, limit uint) ([]*model
 	result := repository.IDatabaseHandler.GetClient().Scopes(
 		scopes.PaginateScope(page, limit),
 	)
-	result = result.Where("is_active = ?", true).Find(&blockchain)
+	result = result.Find(&blockchain)
 
 	if result.Error != nil {
 		return nil, fmt.Errorf("blockchain get list failed: %s", result.Error.Error())
@@ -62,7 +62,6 @@ func (repository *BlockchainRepository) GetCount() (int64, error) {
 	var count int64
 
 	result := repository.IDatabaseHandler.GetClient().Model(&model.Blockchain{})
-	result = result.Where("is_active = ?", true).Count(&count)
 
 	if result.Error != nil {
 		return 0, fmt.Errorf("blockchain get count failed: %s", result.Error.Error())

@@ -1,14 +1,14 @@
-create table if not exists wallet_addresses
+create table if not exists blockchain_explorers
 (
     id              bigserial primary key,
     uuid            uuid default uuid_generate_v4(),
-    walletAddress   text not null,
+    base_url        text not null,
     is_active       boolean default true,
-    allocated_at    timestamp with time zone,
+    is_default      boolean default true,
     created_at      timestamp with time zone,
     updated_at      timestamp with time zone,
     deleted_at      timestamp with time zone
-                              );
+                                  );
 
-create index if not exists idx_wallet_addresses_deleted_at
-    on wallet_addresses (deleted_at);
+create index if not exists idx_blockchain_explorers_deleted_at
+    on blockchain_explorers (deleted_at);
