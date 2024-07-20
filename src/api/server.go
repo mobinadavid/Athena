@@ -3,8 +3,9 @@ package api
 import (
 	"athena/src/api/http/middlewares"
 	"athena/src/config"
+	blockchain_explorer_route "athena/src/services/blockchain-explorer/route"
 	"athena/src/services/blockchain/route"
-	walletRoute "athena/src/services/wallet-address/route"
+	wallet_route "athena/src/services/wallet-address/route"
 
 	"fmt"
 	"github.com/gin-contrib/secure"
@@ -88,7 +89,9 @@ func initServer() error {
 	v1 := router.Group("api/v1")
 	{
 		route.BlockchainRouter(v1)
-		walletRoute.WalletAddressRouter(v1)
+		wallet_route.WalletAddressRouter(v1)
+		blockchain_explorer_route.BlockchainExplorerRouter(v1)
+
 	}
 	// Run App.
 	if err := router.RunTLS(

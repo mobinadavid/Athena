@@ -5,22 +5,22 @@ import (
 	"athena/src/database/scopes"
 	"athena/src/pkg/i18n"
 	"athena/src/pkg/validator"
-	"athena/src/services/wallet-address/request"
-	"athena/src/services/wallet-address/service"
+	"athena/src/services/blockchain-explorer/request"
+	"athena/src/services/blockchain-explorer/service"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"net/http"
 )
 
-type WalletAddressController struct {
-	IWalletAddressService service.IWalletAddressService
+type BlockchainExplorerController struct {
+	IBlockchainExplorerService service.IBlockchainExplorerService
 }
 
-func (controller *WalletAddressController) GetList(c *gin.Context) {
+func (controller *BlockchainExplorerController) GetList(c *gin.Context) {
 
-	var walletAddress *scopes.PaginateModel
+	var blockchainExplorer *scopes.PaginateModel
 
-	walletAddress, err := controller.IWalletAddressService.GetList(
+	blockchainExplorer, err := controller.IBlockchainExplorerService.GetList(
 		uint(c.GetInt("page")),
 		uint(c.GetInt("limit")),
 	)
@@ -34,13 +34,14 @@ func (controller *WalletAddressController) GetList(c *gin.Context) {
 		SetStatusCode(http.StatusOK).
 		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
 		SetData(map[string]interface{}{
-			"walletAddresses": walletAddress,
+			"blockchain_explorers": blockchainExplorer,
 		}).Send()
 	return
 }
 
-func (controller *WalletAddressController) GetByUuid(c *gin.Context) {
+func (controller *BlockchainExplorerController) GetByUuid(c *gin.Context) {
 
+	// Get the UUID from the URL parameter
 	uuidStr := c.Param("uuid")
 
 	// Parse the string to a UUID
@@ -50,7 +51,8 @@ func (controller *WalletAddressController) GetByUuid(c *gin.Context) {
 		return
 	}
 
-	walletAddress, err := controller.IWalletAddressService.GetByUuid(&id)
+	//  to find the blockchainExplorer by UUID
+	blockchainExplorer, err := controller.IBlockchainExplorerService.GetByUuid(&id)
 
 	if err != nil {
 		response.Api(c).
@@ -64,15 +66,16 @@ func (controller *WalletAddressController) GetByUuid(c *gin.Context) {
 		SetStatusCode(http.StatusOK).
 		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
 		SetData(map[string]interface{}{
-			"walletAddress:": walletAddress,
+			"blockchainExplorer:": blockchainExplorer,
 		}).
 		Send()
 	return
 }
 
-func (controller *WalletAddressController) Create(c *gin.Context) {
-	var req request.CreateWalletAddressRequest
+func (controller *BlockchainExplorerController) Create(c *gin.Context) {
+	var req request.CreateBlockchainExplorerRequest
 
+	// Bind check payload.
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.Api(c).Send()
 		return
@@ -87,7 +90,8 @@ func (controller *WalletAddressController) Create(c *gin.Context) {
 		return
 	}
 
-	walletAddress, err := controller.IWalletAddressService.Create(&req)
+	blockchainExplorer, err := controller.IBlockchainExplorerService.Create(&req)
+
 	if err != nil {
 		response.Api(c).
 			SetMessage(err.Error()).
@@ -99,14 +103,14 @@ func (controller *WalletAddressController) Create(c *gin.Context) {
 	response.Api(c).
 		SetStatusCode(http.StatusCreated).
 		SetData(map[string]interface{}{
-			"walletAddress": walletAddress,
+			"blockchainExplorer": blockchainExplorer,
 		}).
 		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
 		Send()
 }
 
-func (controller *WalletAddressController) Delete(c *gin.Context) {
-	//Get the UUID from the URL parameter
+func (controller *BlockchainExplorerController) Delete(c *gin.Context) {
+	// Get the UUID from the URL parameter
 	uuidStr := c.Param("uuid")
 
 	// Parse the string to a UUID
@@ -115,7 +119,7 @@ func (controller *WalletAddressController) Delete(c *gin.Context) {
 		response.Api(c).Send()
 		return
 	}
-	err = controller.IWalletAddressService.Delete(&id)
+	err = controller.IBlockchainExplorerService.Delete(&id)
 
 	if err != nil {
 		response.Api(c).
@@ -133,7 +137,7 @@ func (controller *WalletAddressController) Delete(c *gin.Context) {
 	return
 }
 
-func (controller *WalletAddressController) Update(c *gin.Context) {
+func (controller *BlockchainExplorerController) Update(c *gin.Context) {
 	// Get the UUID from the URL parameter
 	uuidStr := c.Param("uuid")
 
@@ -144,7 +148,7 @@ func (controller *WalletAddressController) Update(c *gin.Context) {
 		return
 	}
 
-	var req request.CreateWalletAddressRequest
+	var req request.CreateBlockchainExplorerRequest
 
 	// Bind check payload.
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -161,7 +165,7 @@ func (controller *WalletAddressController) Update(c *gin.Context) {
 		return
 	}
 
-	walletAddress, err := controller.IWalletAddressService.Update(&id, &req)
+	blockchainExplorer, err := controller.IBlockchainExplorerService.Update(&id, &req)
 
 	if err != nil {
 		response.Api(c).
@@ -174,7 +178,7 @@ func (controller *WalletAddressController) Update(c *gin.Context) {
 	response.Api(c).
 		SetStatusCode(http.StatusCreated).
 		SetData(map[string]interface{}{
-			"walletAddress": walletAddress,
+			"blockchainExplorer": blockchainExplorer,
 		}).
 		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
 		Send()

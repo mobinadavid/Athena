@@ -2,7 +2,7 @@ create table if not exists wallet_addresses
 (
     id               bigserial primary key,
     uuid             uuid default uuid_generate_v4(),
-    title            jsonb,
+    wallet_address_name text not null,
     wallet_address   text not null,
     webhook_url      text not null,
     is_active        boolean default true,

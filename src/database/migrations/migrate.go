@@ -12,6 +12,7 @@ import (
 var blockchainMigration *migrate.Migrate
 var walletMigration *migrate.Migrate
 var explorerMigration *migrate.Migrate
+var explorerBlockchainMappingMigration *migrate.Migrate
 
 func init() {
 	config.Init()
@@ -53,6 +54,17 @@ func init() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	explorerBlockchainMappingMigration, err = migrate.NewWithDatabaseInstance(
+		"file://src/services/blockchain-explorer-mappings/migration",
+		"postgres",
+		driver,
+	)
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 }
 
 func Up() error {
@@ -65,6 +77,10 @@ func Up() error {
 	}
 
 	if err := explorerMigration.Up(); err != nil && err != migrate.ErrNoChange {
+		return err
+	}
+
+	if err := explorerBlockchainMappingMigration.Up(); err != nil && err != migrate.ErrNoChange {
 		return err
 	}
 
@@ -81,6 +97,10 @@ func Down() error {
 	}
 
 	if err := explorerMigration.Down(); err != nil && err != migrate.ErrNoChange {
+		return err
+	}
+
+	if err := explorerBlockchainMappingMigration.Down(); err != nil && err != migrate.ErrNoChange {
 		return err
 	}
 

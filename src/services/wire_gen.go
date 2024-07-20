@@ -9,6 +9,8 @@ package services
 import (
 	"athena/src/database"
 	"athena/src/services/blockchain"
+	"athena/src/services/blockchain-explorer"
+	controller3 "athena/src/services/blockchain-explorer/controller"
 	"athena/src/services/blockchain/controller"
 	blockchain2 "athena/src/services/wallet-address"
 	controller2 "athena/src/services/wallet-address/controller"
@@ -22,11 +24,15 @@ func GetContainer() *Container {
 	blockchainService := blockchain.ProvideBlockchainService(blockchainRepository)
 	blockchainController := blockchain.ProvideBlockchainController(blockchainService)
 	walletAddressRepository := blockchain2.ProvideWalletAddressRepository(databaseDatabase)
-	walletAddressService := blockchain2.ProvideWalletAddressService(walletAddressRepository)
+	walletAddressService := blockchain2.ProvideWalletAddressService(walletAddressRepository, blockchainRepository)
 	walletAddressController := blockchain2.ProvideWalletAddressController(walletAddressService)
+	blockchainExplorerRepository := blockchain_explorer.ProvideBlockchainExplorerRepository(databaseDatabase)
+	blockchainExplorerService := blockchain_explorer.ProvideBlockchainExplorerService(blockchainExplorerRepository, blockchainService)
+	blockchainExplorerController := blockchain_explorer.ProvideBlockchainExplorerController(blockchainExplorerService)
 	container := &Container{
-		BlockchainController:    blockchainController,
-		WalletAddressController: walletAddressController,
+		BlockchainController:         blockchainController,
+		WalletAddressController:      walletAddressController,
+		BlockchainExplorerController: blockchainExplorerController,
 	}
 	return container
 }
@@ -34,6 +40,7 @@ func GetContainer() *Container {
 // wire.go:
 
 type Container struct {
-	BlockchainController    *controller.BlockchainController
-	WalletAddressController *controller2.WalletAddressController
+	BlockchainController         *controller.BlockchainController
+	WalletAddressController      *controller2.WalletAddressController
+	BlockchainExplorerController *controller3.BlockchainExplorerController
 }

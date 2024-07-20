@@ -6,6 +6,7 @@ import (
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+	"regexp"
 )
 
 func RegisterRules(val *validator.Validate, trans *ut.UniversalTranslator) {
@@ -36,4 +37,24 @@ func RegisterRules(val *validator.Validate, trans *ut.UniversalTranslator) {
 func isValidUuid(fl validator.FieldLevel) bool {
 	_, err := uuid.Parse(fl.Field().String())
 	return err == nil
+}
+func IsValidWalletAddress(blockchain string, walletAddress string) bool {
+
+	var regex string
+
+	switch blockchain {
+	case "BTC":
+		regex = `^([13][a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-z0-9]{39,59})$`
+	case "ETH", "BSC":
+		regex = `^0x[a-fA-F0-9]{40}$`
+	case "TRX":
+		regex = `^T[a-zA-Z0-9]{33}$`
+
+	default:
+		return false
+	}
+
+	matched, _ := regexp.MatchString(regex, walletAddress)
+
+	return matched
 }

@@ -16,6 +16,7 @@ type IBlockChainService interface {
 	GetByUuid(uuid *uuid.UUID) (*model.Blockchain, error)
 	Delete(uuid *uuid.UUID) error
 	Update(uuid *uuid.UUID, request *request.CreateBlockchainRequest) (*model.Blockchain, error)
+	GetByName(name string) (*model.Blockchain, error)
 }
 
 type BlockchainService struct {
@@ -49,11 +50,16 @@ func (service *BlockchainService) GetByUuid(uuid *uuid.UUID) (*model.Blockchain,
 	return service.IBlockchainRepository.GetByUuid(uuid)
 }
 
+func (service *BlockchainService) GetByName(name string) (*model.Blockchain, error) {
+	return service.IBlockchainRepository.GetByName(name)
+}
+
 func (service *BlockchainService) Create(request *request.CreateBlockchainRequest) (*model.Blockchain, error) {
 	category := &model.Blockchain{
-		NativeAsset: request.NativeAsset,
-		Title:       request.Title,
-		IsActive:    request.IsActive,
+		NativeAsset:    request.NativeAsset,
+		Title:          request.Title,
+		IsActive:       request.IsActive,
+		BlockchainName: request.BlockchainName,
 	}
 	faqOrm, err := service.IBlockchainRepository.Create(category)
 	if err != nil {
@@ -68,8 +74,9 @@ func (service *BlockchainService) Delete(uuid *uuid.UUID) error {
 
 func (service *BlockchainService) Update(uuid *uuid.UUID, request *request.CreateBlockchainRequest) (*model.Blockchain, error) {
 	return service.IBlockchainRepository.Update(uuid, &model.Blockchain{
-		NativeAsset: request.NativeAsset,
-		Title:       request.Title,
-		IsActive:    request.IsActive,
+		NativeAsset:    request.NativeAsset,
+		Title:          request.Title,
+		IsActive:       request.IsActive,
+		BlockchainName: request.BlockchainName,
 	})
 }
