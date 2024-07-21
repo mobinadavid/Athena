@@ -5,11 +5,8 @@ import (
 )
 
 type PaginateModel struct {
-	Limit       uint        `json:"limit"`
-	CurrentPage uint        `json:"current_page"`
-	TotalPages  int64       `json:"total_pages"`
-	TotalItems  int64       `json:"total_items"`
-	Items       interface{} `json:"items"`
+	TotalItems int64       `json:"total_items"`
+	Items      interface{} `json:"items"`
 }
 
 func PaginateScope(page uint, limit uint) func(db *gorm.DB) *gorm.DB {

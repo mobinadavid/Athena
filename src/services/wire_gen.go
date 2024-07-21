@@ -24,10 +24,10 @@ func GetContainer() *Container {
 	blockchainService := blockchain.ProvideBlockchainService(blockchainRepository)
 	blockchainController := blockchain.ProvideBlockchainController(blockchainService)
 	walletAddressRepository := blockchain2.ProvideWalletAddressRepository(databaseDatabase)
-	walletAddressService := blockchain2.ProvideWalletAddressService(walletAddressRepository, blockchainRepository)
-	walletAddressController := blockchain2.ProvideWalletAddressController(walletAddressService)
 	blockchainExplorerRepository := blockchain_explorer.ProvideBlockchainExplorerRepository(databaseDatabase)
 	blockchainExplorerService := blockchain_explorer.ProvideBlockchainExplorerService(blockchainExplorerRepository, blockchainService)
+	walletAddressService := blockchain2.ProvideWalletAddressService(walletAddressRepository, blockchainService, blockchainExplorerService)
+	walletAddressController := blockchain2.ProvideWalletAddressController(walletAddressService)
 	blockchainExplorerController := blockchain_explorer.ProvideBlockchainExplorerController(blockchainExplorerService)
 	container := &Container{
 		BlockchainController:         blockchainController,

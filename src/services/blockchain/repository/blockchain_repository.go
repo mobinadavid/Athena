@@ -2,7 +2,6 @@ package repository
 
 import (
 	"athena/src/database"
-	"athena/src/database/scopes"
 	"athena/src/services/blockchain/model"
 	"errors"
 	"fmt"
@@ -11,7 +10,7 @@ import (
 )
 
 type IBlockchainRepository interface {
-	GetList(page uint, limit uint) ([]*model.Blockchain, error)
+	GetList() ([]*model.Blockchain, error)
 	GetByUuid(uuid *uuid.UUID) (*model.Blockchain, error)
 	GetByName(name string) (*model.Blockchain, error)
 	GetById(uint uint) (*model.Blockchain, error)
@@ -25,12 +24,10 @@ type BlockchainRepository struct {
 	IDatabaseHandler *database.Database
 }
 
-func (repository *BlockchainRepository) GetList(page uint, limit uint) ([]*model.Blockchain, error) {
+func (repository *BlockchainRepository) GetList() ([]*model.Blockchain, error) {
 	var blockchain []*model.Blockchain
 
-	result := repository.IDatabaseHandler.GetClient().Scopes(
-		scopes.PaginateScope(page, limit),
-	)
+	result := repository.IDatabaseHandler.GetClient().Scopes()
 	result = result.Find(&blockchain)
 
 	if result.Error != nil {

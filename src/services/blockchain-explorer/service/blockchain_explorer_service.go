@@ -8,13 +8,13 @@ import (
 	blockchain_model "athena/src/services/blockchain/model"
 	"athena/src/services/blockchain/service"
 	"github.com/google/uuid"
-	"math"
 )
 
 type IBlockchainExplorerService interface {
-	GetList(page uint, limit uint) (*scopes.PaginateModel, error)
+	GetList() (*scopes.PaginateModel, error)
 	Create(request *request.CreateBlockchainExplorerRequest) (*model.BlockchainExplorer, error)
 	GetByUuid(uuid *uuid.UUID) (*model.BlockchainExplorer, error)
+	GetExplorerByBlockchainId(blockchainId uint) (*model.BlockchainExplorer, error)
 	Delete(uuid *uuid.UUID) error
 	Update(uuid *uuid.UUID, request *request.CreateBlockchainExplorerRequest) (*model.BlockchainExplorer, error)
 }
@@ -24,33 +24,32 @@ type BlockchainExplorerService struct {
 	IBlockchainService            *service.BlockchainService
 }
 
-func (service *BlockchainExplorerService) GetList(page uint, limit uint) (*scopes.PaginateModel, error) {
+func (service *BlockchainExplorerService) GetList() (*scopes.PaginateModel, error) {
 
 	var blockchainExplorers []*model.BlockchainExplorer
 	var err error
 	var count int64
 
-	blockchainExplorers, err = service.IBlockchainExplorerRepository.GetList(page, limit)
+	blockchainExplorers, err = service.IBlockchainExplorerRepository.GetList()
 	count, err = service.IBlockchainExplorerRepository.GetCount()
 
 	if err != nil {
 		return nil, err
 	}
 
-	totalPages := int64(math.Ceil(float64(count) / float64(limit)))
-
 	return &scopes.PaginateModel{
-		Limit:       limit,
-		CurrentPage: page,
-		TotalPages:  totalPages,
-		TotalItems:  count,
-		Items:       &blockchainExplorers,
+		TotalItems: count,
+		Items:      &blockchainExplorers,
 	}, nil
 
 }
 
 func (service *BlockchainExplorerService) GetByUuid(uuid *uuid.UUID) (*model.BlockchainExplorer, error) {
 	return service.IBlockchainExplorerRepository.GetByUuid(uuid)
+}
+
+func (service *BlockchainExplorerService) GetExplorerByBlockchainId(id uint) (*model.BlockchainExplorer, error) {
+	return service.IBlockchainExplorerRepository.GetExplorerByBlockchainID(id)
 }
 
 func (service *BlockchainExplorerService) Create(request *request.CreateBlockchainExplorerRequest) (*model.BlockchainExplorer, error) {
@@ -60,6 +59,7 @@ func (service *BlockchainExplorerService) Create(request *request.CreateBlockcha
 		BlockchainExplorerName: request.BlockchainExplorerName,
 		IsActive:               request.IsActive,
 		IsDefault:              request.IsDefault,
+		ApiKey:                 request.Apikey,
 	}
 
 	blockchains := make([]*blockchain_model.Blockchain, 0, len(request.Blockchains))
@@ -91,6 +91,7 @@ func (service *BlockchainExplorerService) Update(uuid *uuid.UUID, request *reque
 		BlockchainExplorerName: request.BlockchainExplorerName,
 		IsActive:               request.IsActive,
 		IsDefault:              request.IsDefault,
+		ApiKey:                 request.Apikey,
 	}
 
 	blockchains := make([]*blockchain_model.Blockchain, 0, len(request.Blockchains))

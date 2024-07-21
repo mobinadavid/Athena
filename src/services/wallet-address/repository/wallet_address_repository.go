@@ -2,7 +2,6 @@ package repository
 
 import (
 	"athena/src/database"
-	"athena/src/database/scopes"
 	"athena/src/services/wallet-address/model"
 	"errors"
 	"fmt"
@@ -11,7 +10,7 @@ import (
 )
 
 type IWalletAddressRepository interface {
-	GetList(page uint, limit uint) ([]*model.WalletAddress, error)
+	GetList() ([]*model.WalletAddress, error)
 	GetByUuid(uuid *uuid.UUID) (*model.WalletAddress, error)
 	Create(blockchain *model.WalletAddress) (*model.WalletAddress, error)
 	GetCount() (int64, error)
@@ -23,12 +22,10 @@ type WalletAddressRepository struct {
 	IDatabaseHandler *database.Database
 }
 
-func (repository *WalletAddressRepository) GetList(page uint, limit uint) ([]*model.WalletAddress, error) {
+func (repository *WalletAddressRepository) GetList() ([]*model.WalletAddress, error) {
 	var walletAddress []*model.WalletAddress
 
-	result := repository.IDatabaseHandler.GetClient().Scopes(
-		scopes.PaginateScope(page, limit),
-	)
+	result := repository.IDatabaseHandler.GetClient()
 	result = result.Find(&walletAddress)
 
 	if result.Error != nil {

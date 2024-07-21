@@ -11,6 +11,7 @@ type BlockchainExplorer struct {
 	ID                     uint                `gorm:"primaryKey" json:"id"`
 	UUID                   uuid.UUID           `gorm:"default:uuid_generate_v4()" json:"uuid"`
 	BaseUrl                string              `gorm:"not null" json:"base_url"`
+	ApiKey                 string              `gorm:"not null" json:"api_key"`
 	BlockchainExplorerName string              `gorm:"not null;uniqueIndex" json:"blockchain-explorer-name"`
 	IsActive               *bool               `gorm:"type:bool;default:true" json:"is_active"`
 	IsDefault              *bool               `gorm:"type:bool;default:true" json:"is_default"`

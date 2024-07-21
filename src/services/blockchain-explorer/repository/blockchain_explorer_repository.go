@@ -2,7 +2,6 @@ package repository
 
 import (
 	"athena/src/database"
-	"athena/src/database/scopes"
 	"athena/src/services/blockchain-explorer/model"
 	"errors"
 	"fmt"
@@ -11,12 +10,13 @@ import (
 )
 
 type IBlockchainExplorerRepository interface {
-	GetList(page uint, limit uint) ([]*model.BlockchainExplorer, error)
+	GetList() ([]*model.BlockchainExplorer, error)
 	GetByUuid(uuid *uuid.UUID) (*model.BlockchainExplorer, error)
 	Create(explorer *model.BlockchainExplorer) (*model.BlockchainExplorer, error)
 	GetCount() (int64, error)
 	Delete(uuid *uuid.UUID) error
 	Update(uuid *uuid.UUID, req *model.BlockchainExplorer) (*model.BlockchainExplorer, error)
+	GetExplorerByBlockchainID(blockchainID uint) (*model.BlockchainExplorer, error)
 }
 
 type BlockchainExplorerRepository struct {
@@ -33,14 +33,12 @@ func (repository *BlockchainExplorerRepository) Create(blockchainExplorer *model
 	return blockchainExplorer, nil
 }
 
-func (repository *BlockchainExplorerRepository) GetList(page uint, limit uint) ([]*model.BlockchainExplorer, error) {
+func (repository *BlockchainExplorerRepository) GetList() ([]*model.BlockchainExplorer, error) {
 
 	var blockchainExplorers []*model.BlockchainExplorer
 	result := repository.IDatabaseHandler.GetClient().Model(&model.BlockchainExplorer{})
 
-	result = result.Scopes(
-		scopes.PaginateScope(page, limit),
-	)
+	result = result.Scopes()
 
 	result = result.Find(&blockchainExplorers)
 
@@ -130,4 +128,16 @@ func (repository *BlockchainExplorerRepository) Update(uuid *uuid.UUID, blockcha
 	}
 
 	return &existing, nil
+}
+
+func (repository *BlockchainExplorerRepository) GetExplorerByBlockchainID(blockchainID uint) (*model.BlockchainExplorer, error) {
+	var explorer model.BlockchainExplorer
+
+	result := repository.IDatabaseHandler.GetClient().Joins("JOIN blockchain_explorer_mappings ON blockchain_explorer_mappings.blockchain_explorer_id = blockchain_explorers.id").Where("blockchain_explorer_mappings.blockchain_id = ? AND blockchain_explorers.is_active = ? AND blockchain_explorers.is_default = ?", blockchainID, true, true).First(&explorer)
+	if result.Error != nil {
+		return nil, fmt.Errorf("failed to get active default explorer for blockchain ID %d: %w", blockchainID, result.Error)
+	}
+
+	return &explorer, nil
+
 }

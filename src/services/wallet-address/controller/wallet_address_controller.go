@@ -20,10 +20,7 @@ func (controller *WalletAddressController) GetList(c *gin.Context) {
 
 	var walletAddress *scopes.PaginateModel
 
-	walletAddress, err := controller.IWalletAddressService.GetList(
-		uint(c.GetInt("page")),
-		uint(c.GetInt("limit")),
-	)
+	walletAddress, err := controller.IWalletAddressService.GetList()
 
 	if err != nil {
 		response.Api(c).SetStatusCode(http.StatusNotFound).Send()

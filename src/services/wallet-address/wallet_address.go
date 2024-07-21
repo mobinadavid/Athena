@@ -2,7 +2,8 @@ package blockchain
 
 import (
 	"athena/src/database"
-	blockchain_repository "athena/src/services/blockchain/repository"
+	blockchain_explorer_service "athena/src/services/blockchain-explorer/service"
+	blockchain_service "athena/src/services/blockchain/service"
 	"athena/src/services/wallet-address/controller"
 	"athena/src/services/wallet-address/repository"
 	"athena/src/services/wallet-address/service"
@@ -23,10 +24,11 @@ func ProvideWalletAddressController(service service.IWalletAddressService) *cont
 	}
 }
 
-func ProvideWalletAddressService(repository repository.IWalletAddressRepository, blockchainRepository blockchain_repository.IBlockchainRepository) *service.WalletAddressService {
+func ProvideWalletAddressService(repository repository.IWalletAddressRepository, blockchainService blockchain_service.IBlockChainService, explorerService blockchain_explorer_service.IBlockchainExplorerService) *service.WalletAddressService {
 	return &service.WalletAddressService{
-		IWalletAddressRepository: repository,
-		IBlockchainRepository:    blockchainRepository,
+		IWalletAddressRepository:   repository,
+		IBlockchainService:         blockchainService,
+		IBlockchainExplorerService: explorerService,
 	}
 }
 
