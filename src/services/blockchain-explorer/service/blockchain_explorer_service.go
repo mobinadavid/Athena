@@ -64,14 +64,17 @@ func (service *BlockchainExplorerService) Create(request *request.CreateBlockcha
 
 	blockchains := make([]*blockchain_model.Blockchain, 0, len(request.Blockchains))
 	for _, blockchainName := range request.Blockchains {
+
 		blockchain, err := service.IBlockchainService.GetByName(blockchainName)
 		if err != nil {
 			return nil, err
 		}
+
 		blockchains = append(blockchains, blockchain)
 	}
 
 	blockchainExplorer.Blockchains = blockchains
+
 	explorerOrm, err := service.IBlockchainExplorerRepository.Create(blockchainExplorer)
 	if err != nil {
 		return nil, err
@@ -104,6 +107,7 @@ func (service *BlockchainExplorerService) Update(uuid *uuid.UUID, request *reque
 	}
 
 	blockchainExplorer.Blockchains = blockchains
+
 	return service.IBlockchainExplorerRepository.Update(uuid, blockchainExplorer)
 
 }

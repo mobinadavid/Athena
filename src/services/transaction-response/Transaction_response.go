@@ -4,12 +4,12 @@ type Response struct {
 	BlockNumber   string `json:"blockNumber"`
 	Hash          string `json:"hash"`
 	Timestamp     string `json:"timeStamp"`
-	BlockHash     string `json:"blockHash"`
 	From          string `json:"from"`
 	To            string `json:"to"`
 	Gas           string `json:"gas"`
 	GasPrice      string `json:"gasPrice"`
-	Nonce         string `json:"nonce"`
+	IsConfirmed   bool   `json:"is_confirmed"`
 	Confirmations string `json:"confirmations"`
+	Amount        string `json:"amount"`
 	BlockChain    string `json:"blockChain"`
 }

@@ -9,100 +9,55 @@ import (
 	"log"
 )
 
-var blockchainMigration *migrate.Migrate
-var walletMigration *migrate.Migrate
-var explorerMigration *migrate.Migrate
-var explorerBlockchainMappingMigration *migrate.Migrate
+var migrations []*migrate.Migrate
 
 func init() {
-	config.Init()
-	database.Init()
 
-	db := database.GetInstance()
-	driver, err := postgres.WithInstance(db.GetDB(), &postgres.Config{})
-
-	if err != nil {
-		log.Fatalln(err)
+	services := []string{
+		"blockchain",
+		"wallet-address",
+		"blockchain-explorer",
+		"blockchain-explorer-mappings",
 	}
 
-	blockchainMigration, err = migrate.NewWithDatabaseInstance(
-		"file://src/services/blockchain/migration",
-		"postgres",
-		driver,
-	)
+	for _, service := range services {
+		config.Init()
+		database.Init()
 
-	if err != nil {
-		log.Fatalln(err)
+		db := database.GetInstance()
+		driver, err := postgres.WithInstance(db.GetDB(), &postgres.Config{})
+		if err != nil {
+			log.Fatalf("Failed to create database driver: %v", err)
+		}
+
+		migration, err := migrate.NewWithDatabaseInstance(
+			"file://src/services/"+service+"/migration",
+			"postgres",
+			driver,
+		)
+		if err != nil {
+			log.Fatalf("Failed to create migration instance for %s: %v", service, err)
+		}
+		migrations = append(migrations, migration)
 	}
-
-	walletMigration, err = migrate.NewWithDatabaseInstance(
-		"file://src/services/wallet-address/migration",
-		"postgres",
-		driver,
-	)
-
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	explorerMigration, err = migrate.NewWithDatabaseInstance(
-		"file://src/services/blockchain-explorer/migration",
-		"postgres",
-		driver,
-	)
-
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	explorerBlockchainMappingMigration, err = migrate.NewWithDatabaseInstance(
-		"file://src/services/blockchain-explorer-mappings/migration",
-		"postgres",
-		driver,
-	)
-
-	if err != nil {
-		log.Fatalln(err)
-	}
-
 }
 
 func Up() error {
-	if err := blockchainMigration.Up(); err != nil && err != migrate.ErrNoChange {
-		return err
+	for _, m := range migrations {
+		if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+			log.Printf("Failed to apply migration: %v", err)
+			return err
+		}
 	}
-
-	if err := walletMigration.Up(); err != nil && err != migrate.ErrNoChange {
-		return err
-	}
-
-	if err := explorerMigration.Up(); err != nil && err != migrate.ErrNoChange {
-		return err
-	}
-
-	if err := explorerBlockchainMappingMigration.Up(); err != nil && err != migrate.ErrNoChange {
-		return err
-	}
-
 	return nil
 }
 
 func Down() error {
-	if err := blockchainMigration.Down(); err != nil && err != migrate.ErrNoChange {
-		return err
+	for _, m := range migrations {
+		if err := m.Down(); err != nil && err != migrate.ErrNoChange {
+			log.Printf("Failed to revert migration: %v", err)
+			return err
+		}
 	}
-
-	if err := walletMigration.Down(); err != nil && err != migrate.ErrNoChange {
-		return err
-	}
-
-	if err := explorerMigration.Down(); err != nil && err != migrate.ErrNoChange {
-		return err
-	}
-
-	if err := explorerBlockchainMappingMigration.Down(); err != nil && err != migrate.ErrNoChange {
-		return err
-	}
-
 	return nil
 }

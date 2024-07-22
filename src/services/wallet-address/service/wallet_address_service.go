@@ -5,13 +5,15 @@ import (
 	blockchain_explorer_service "athena/src/services/blockchain-explorer/service"
 	blockchain_model "athena/src/services/blockchain/model"
 	blockchain_service "athena/src/services/blockchain/service"
-	"athena/src/services/payment-gateway/drivers/crypto"
+	"athena/src/services/payment-gateway/drivers/crypto/etherscan"
+	"athena/src/services/payment-gateway/drivers/crypto/tronscan"
 	transaction_response "athena/src/services/transaction-response"
 	"athena/src/services/wallet-address/model"
 	"athena/src/services/wallet-address/repository"
 	"athena/src/services/wallet-address/request"
 	"fmt"
 	"github.com/google/uuid"
+	"reflect"
 )
 
 type IWalletAddressService interface {
@@ -97,14 +99,14 @@ func (service *WalletAddressService) Update(uuid *uuid.UUID, request *request.Cr
 // GetTransactions This method will connect to related blockchain explorer and returns the list of transactions for requested wallet address.
 func (service *WalletAddressService) GetTransactions(walletAddress string, blockchain *blockchain_model.Blockchain) ([]transaction_response.Response, error) {
 
+	explorer, err := service.IBlockchainExplorerService.GetExplorerByBlockchainId(blockchain.ID)
+	if err != nil {
+		return nil, fmt.Errorf("error finding explorer: %w", err)
+	}
+
 	switch blockchain.NativeAsset {
 	case "ETH":
-		explorer, err := service.IBlockchainExplorerService.GetExplorerByBlockchainId(blockchain.ID)
-		if err != nil {
-			return nil, fmt.Errorf("error finding explorer: %w", err)
-		}
-
-		ethTransactions, err := crypto.FetchEthTransaction(walletAddress, explorer.BaseUrl, explorer.ApiKey)
+		ethTransactions, err := etherscan.FetchEthTransaction(walletAddress, explorer.BaseUrl, explorer.ApiKey)
 		if err != nil {
 			return nil, fmt.Errorf("error fetching Ethereum transactions: %w", err)
 		}
@@ -112,6 +114,14 @@ func (service *WalletAddressService) GetTransactions(walletAddress string, block
 		return ethTransactions, nil
 
 	case "TRX":
+		trxTransactions, err := tronscan.FetchTronTransactions(walletAddress, explorer.BaseUrl)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching Tron transactions: %w", err)
+		}
+
+		return trxTransactions, nil
+
+	case "BSC":
 
 	}
 
@@ -141,18 +151,14 @@ func (service *WalletAddressService) HandleDeposits() error {
 			return fmt.Errorf("failed to get transactions for wallet address %s: %w", walletAddress.WalletAddress, err)
 		}
 		for _, tx := range txs {
-			fmt.Printf("Transaction Details:\n")
-			fmt.Printf("  Nonce: %s\n", tx.Nonce)
-			fmt.Printf("  BlockHash: %s\n", tx.BlockHash)
-			fmt.Printf("  From: %s\n", tx.From)
-			fmt.Printf("  To: %s\n", tx.To)
-			fmt.Printf("  Gas: %s\n", tx.Gas)
-			fmt.Printf("  GasPrice: %s\n", tx.GasPrice)
-			fmt.Printf("  Confirmations: %s\n", tx.Confirmations)
-			fmt.Printf("  Timestamp: %s\n", tx.Timestamp)
-			fmt.Printf("  Hash: %s\n", tx.Hash)
-			fmt.Printf("  BlockNumber: %s\n", tx.BlockNumber)
-			fmt.Printf("  Blockchain: %s\n", tx.BlockChain)
+			v := reflect.ValueOf(tx)
+			t := v.Type()
+
+			for i := 0; i < v.NumField(); i++ {
+				field := t.Field(i)
+				value := v.Field(i).Interface()
+				fmt.Printf("  %s: %v\n", field.Name, value)
+			}
 			fmt.Println()
 		}
 	}

@@ -1,55 +1,59 @@
-package crypto
+package etherscan
 
 import (
+	"athena/src/services/payment-gateway/drivers/crypto/etherscan/model"
 	transaction_response "athena/src/services/transaction-response"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
+	"github.com/go-resty/resty/v2"
 )
 
-type EtherscanResponse struct {
-	Status  string                   `json:"status"`
-	Message string                   `json:"message"`
-	Result  []map[string]interface{} `json:"result"`
-}
-
 func FetchEthTransaction(walletAddress string, baseUrl string, apiKey string) ([]transaction_response.Response, error) {
+
+	// Create a new Resty client
+	client := resty.New()
+
 	url := fmt.Sprintf("%s/api?module=account&action=txlist&address=%s&apikey=%s", baseUrl, walletAddress, apiKey)
-	resp, err := http.Get(url)
+
+	// Make the HTTP GET request
+	resp, err := client.R().
+		SetHeader("Content-Type", "application/json").
+		Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("error making request to Etherscan: %w", err)
 	}
-	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("error reading response body: %w", err)
+	// Check for successful response status
+	if resp.StatusCode() != 200 {
+		return nil, fmt.Errorf("API request failed with status %d", resp.StatusCode())
 	}
 
-	var etherscanResponse EtherscanResponse
-	err = json.Unmarshal(body, &etherscanResponse)
+	// Unmarshal the response body into EtherScanResponse
+	var etherScanResponse model.EtherScanResponse
+	err = json.Unmarshal(resp.Body(), &etherScanResponse)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshalling response: %w", err)
 	}
 
-	if etherscanResponse.Status != "1" {
-		return nil, fmt.Errorf("API error: %s", etherscanResponse.Message)
+	if etherScanResponse.Status != "1" {
+		return nil, fmt.Errorf("API error: %s", etherScanResponse.Message)
 	}
 
+	// Parse transactions
+
 	var transactions []transaction_response.Response
-	for _, tx := range etherscanResponse.Result {
+	for _, tx := range etherScanResponse.Result {
+
 		response := transaction_response.Response{
 			BlockNumber:   tx["blockNumber"].(string),
 			Hash:          tx["hash"].(string),
 			Timestamp:     tx["timeStamp"].(string),
-			BlockHash:     tx["blockHash"].(string),
 			From:          tx["from"].(string),
 			To:            tx["to"].(string),
 			Gas:           tx["gas"].(string),
 			GasPrice:      tx["gasPrice"].(string),
-			Nonce:         tx["nonce"].(string),
 			Confirmations: tx["confirmations"].(string),
+			Amount:        tx["value"].(string),
 			BlockChain:    "ETH",
 		}
 		transactions = append(transactions, response)
