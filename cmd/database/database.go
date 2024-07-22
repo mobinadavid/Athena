@@ -13,6 +13,8 @@ var DatabaseCmd = &cobra.Command{
 
 func init() {
 	DatabaseCmd.AddCommand(
+		backupCmd,
 		migrateCmd,
+		seedCmd,
 	)
 }

@@ -13,8 +13,8 @@ type BlockchainExplorer struct {
 	BaseUrl                string              `gorm:"not null" json:"base_url"`
 	ApiKey                 string              `gorm:"not null" json:"api_key"`
 	BlockchainExplorerName string              `gorm:"not null;uniqueIndex" json:"blockchain-explorer-name"`
-	IsActive               *bool               `gorm:"type:bool;default:true" json:"is_active"`
-	IsDefault              *bool               `gorm:"type:bool;default:true" json:"is_default"`
+	IsActive               bool                `gorm:"type:bool;default:true" json:"is_active"`
+	IsDefault              bool                `gorm:"type:bool;default:true" json:"is_default"`
 	CreatedAt              time.Time           `json:"created_at"`
 	UpdatedAt              time.Time           `json:"updated_at"`
 	DeletedAt              gorm.DeletedAt      `gorm:"index" json:"deleted_at"`
