@@ -5,6 +5,7 @@ import (
 	blockchain_explorer_service "athena/src/services/blockchain-explorer/service"
 	blockchain_model "athena/src/services/blockchain/model"
 	blockchain_service "athena/src/services/blockchain/service"
+	"athena/src/services/payment-gateway/drivers/crypto/bscscan"
 	"athena/src/services/payment-gateway/drivers/crypto/etherscan"
 	"athena/src/services/payment-gateway/drivers/crypto/tronscan"
 	transaction_response "athena/src/services/transaction-response"
@@ -122,7 +123,12 @@ func (service *WalletAddressService) GetTransactions(walletAddress string, block
 		return trxTransactions, nil
 
 	case "BSC":
+		bscTransactions, err := bscscan.FetchBscTransaction(walletAddress, explorer.BaseUrl, explorer.ApiKey)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching Tron transactions: %w", err)
+		}
 
+		return bscTransactions, nil
 	}
 
 	return nil, nil
