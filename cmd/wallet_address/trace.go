@@ -15,5 +15,6 @@ var traceCmd = &cobra.Command{
 		if err := serviceContainer.WalletAddressController.IWalletAddressService.HandleDeposits(); err != nil {
 			log.Fatalf("HandleDeposits failed: %v", err)
 		}
+
 	},
 }

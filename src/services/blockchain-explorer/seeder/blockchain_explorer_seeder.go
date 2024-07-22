@@ -1,14 +1,23 @@
 package seeder
 
 import (
+	"athena/src/config"
 	"athena/src/database"
+	"athena/src/pkg/vault"
 	explorerModel "athena/src/services/blockchain-explorer/model"
 	blockchainModel "athena/src/services/blockchain/model"
+	"context"
 	"log"
 )
 
 func SeedExplorer() {
 	var db = database.GetInstance()
+	var configs = config.GetInstance()
+
+	secrets, err := vault.GetInstance().GetVault().KVv2("kv-v2").Get(context.Background(), configs.Get("APP_NAME")+"/blockchain-explorer")
+	if err != nil {
+		log.Println(err)
+	}
 
 	// Retrieve the existing Blockchain records
 	var tronBlockchain, ethereumBlockchain, binanceBlockchain blockchainModel.Blockchain
@@ -31,7 +40,7 @@ func SeedExplorer() {
 			BaseUrl:                "https://api.etherscan.io",
 			BlockchainExplorerName: "etherscan",
 			IsDefault:              true,
-			ApiKey:                 "WIVAQUE9C2EFPMV2PG2HTB9CVRRHS5HCK1",
+			ApiKey:                 secrets.Data["ethApiKey"].(string),
 			Blockchains:            []*blockchainModel.Blockchain{&ethereumBlockchain},
 		},
 		{
@@ -39,7 +48,7 @@ func SeedExplorer() {
 			BaseUrl:                "https://api.bscscan.com",
 			BlockchainExplorerName: "bscscan",
 			IsDefault:              true,
-			ApiKey:                 "GHK25VFCJQF1QIKPFQJZ9KEI4452HQJDAM",
+			ApiKey:                 secrets.Data["bscApiKey"].(string),
 			Blockchains:            []*blockchainModel.Blockchain{&binanceBlockchain},
 		},
 	}
