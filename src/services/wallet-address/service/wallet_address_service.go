@@ -127,9 +127,14 @@ func (service *WalletAddressService) GetTransactions(walletAddress string, block
 
 	switch blockchain.NativeAsset {
 	case "ETH":
-		ethTransactions, err := etherscan.FetchEthTransaction(walletAddress, explorer.BaseUrl)
+		etherScanApi, err := etherscan.NewEtherscan(explorer.BaseUrl)
 		if err != nil {
-			return nil, fmt.Errorf("error fetching Ethereum transactions: %w", err)
+			return nil, err
+		}
+
+		ethTransactions, err := etherScanApi.FetchEthTransaction(walletAddress)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching Binanace transactions: %w", err)
 		}
 
 		return ethTransactions, nil
@@ -148,6 +153,7 @@ func (service *WalletAddressService) GetTransactions(walletAddress string, block
 		if err != nil {
 			return nil, err
 		}
+
 		bscTransactions, err := bscScanApi.FetchBscTransaction(walletAddress)
 		if err != nil {
 			return nil, fmt.Errorf("error fetching Binanace transactions: %w", err)

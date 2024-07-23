@@ -9,37 +9,56 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-resty/resty/v2"
-	"log"
+	"strconv"
+	"time"
 )
 
-func FetchEthTransaction(walletAddress string, baseUrl string) ([]transaction_response.Response, error) {
+type Etherscan struct {
+	apiClient *resty.Client
+	apiKey    string
+	baseUrl   string
+}
 
-	// Create a new Resty client
-	client := resty.New()
-	var configs = config.GetInstance()
+func NewEtherscan(baseUrl string) (*Etherscan, error) {
+
+	configs := config.GetInstance()
+	requestTimeout, _ := strconv.Atoi(configs.Get("ETH_REQUEST_TIMEOUT"))
 
 	secrets, err := vault.GetInstance().GetVault().KVv2("kv-v2").Get(context.Background(), configs.Get("APP_NAME")+"/blockchain-explorer")
 	if err != nil {
-		log.Println(err)
+		return nil, err
 	}
-	apiKey := secrets.Data["ethApiKey"].(string)
 
-	url := fmt.Sprintf("%s/api?module=account&action=txlist&address=%s&apikey=%s", baseUrl, walletAddress, apiKey)
+	etherscan := &Etherscan{
+		apiClient: resty.New(),
+		apiKey:    secrets.Data["ethApiKey"].(string),
+		baseUrl:   baseUrl,
+	}
 
-	// Make the HTTP GET request
-	resp, err := client.R().
+	etherscan.apiClient.
 		SetHeader("Content-Type", "application/json").
+		SetTimeout(time.Duration(requestTimeout) * time.Second)
+
+	if proxy := configs.Get("ETH_PROXY"); proxy != "" {
+		etherscan.apiClient.SetProxy(proxy)
+	}
+
+	return etherscan, nil
+}
+
+func (e *Etherscan) FetchEthTransaction(walletAddress string) ([]transaction_response.Response, error) {
+	url := fmt.Sprintf("%s/api?module=account&action=txlist&address=%s&apikey=%s", e.baseUrl, walletAddress, e.apiKey)
+
+	resp, err := e.apiClient.R().
 		Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("error making request to Etherscan: %w", err)
 	}
 
-	// Check for successful response status
 	if resp.StatusCode() != 200 {
 		return nil, fmt.Errorf("API request failed with status %d", resp.StatusCode())
 	}
 
-	// Unmarshal the response body into EtherScanResponse
 	var etherScanResponse model.EtherScanResponse
 	err = json.Unmarshal(resp.Body(), &etherScanResponse)
 	if err != nil {
@@ -49,7 +68,6 @@ func FetchEthTransaction(walletAddress string, baseUrl string) ([]transaction_re
 	if etherScanResponse.Status != "1" {
 		return nil, fmt.Errorf("API error: %s", etherScanResponse.Message)
 	}
-
 	// Parse transactions
 
 	var transactions []transaction_response.Response
