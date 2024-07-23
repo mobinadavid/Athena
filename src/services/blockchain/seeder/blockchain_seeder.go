@@ -36,21 +36,22 @@ func SeedBlockchain() {
 
 	}
 
+	isActive := true
 	blockchains := []*model.Blockchain{
 		{
-			IsActive:       true,
+			IsActive:       &isActive,
 			Title:          tron,
 			NativeAsset:    "TRX",
 			BlockchainName: "Tron",
 		},
 		{
-			IsActive:       true,
+			IsActive:       &isActive,
 			Title:          eth,
 			NativeAsset:    "ETH",
 			BlockchainName: "Ethereum",
 		},
 		{
-			IsActive:       true,
+			IsActive:       &isActive,
 			Title:          bsc,
 			NativeAsset:    "BSC",
 			BlockchainName: "Binance",

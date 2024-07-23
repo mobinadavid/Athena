@@ -17,23 +17,25 @@ func SeedExplorer() {
 	db.GetClient().Where("blockchain_name = ?", "Binance").First(&binanceBlockchain)
 
 	// Seed the BlockchainExplorer records and associate them with the Blockchain records
+	isActive := true
+
 	explorers := []*explorerModel.BlockchainExplorer{
 		{
-			IsActive:               true,
+			IsActive:               &isActive,
 			BaseUrl:                "https://apilist.tronscanapi.com",
 			BlockchainExplorerName: "tronscan",
 			IsDefault:              true,
 			Blockchains:            []*blockchainModel.Blockchain{&tronBlockchain},
 		},
 		{
-			IsActive:               true,
+			IsActive:               &isActive,
 			BaseUrl:                "https://api.etherscan.io",
 			BlockchainExplorerName: "etherscan",
 			IsDefault:              true,
 			Blockchains:            []*blockchainModel.Blockchain{&ethereumBlockchain},
 		},
 		{
-			IsActive:               true,
+			IsActive:               &isActive,
 			BaseUrl:                "https://api.bscscan.com",
 			BlockchainExplorerName: "bscscan",
 			IsDefault:              true,

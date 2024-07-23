@@ -9,5 +9,7 @@
   "invalid-jalali-date": "Verilen tarih geçerli bir celali tarihi formatında olmalıdır.",
   "invalid-is-uuid": "Sağlanan değer geçerli bir UUID değil.",
   "invalid-exists": "Sağlanan değer geçersiz.",
-  "invalid-is-strong-password": "Verilen şifre yeterince güçlü değil."
+  "invalid-is-strong-password": "Verilen şifre yeterince güçlü değil.",
+  "invalid-is-wallet-address": "Sağlanan değer geçerli bir cüzdan adresi değil."
+
 }

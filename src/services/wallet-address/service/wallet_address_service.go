@@ -2,7 +2,6 @@ package service
 
 import (
 	"athena/src/database/scopes"
-	"athena/src/pkg/validator"
 	blockchain_explorer_service "athena/src/services/blockchain-explorer/service"
 	blockchain_model "athena/src/services/blockchain/model"
 	blockchain_service "athena/src/services/blockchain/service"
@@ -36,7 +35,6 @@ type WalletAddressService struct {
 }
 
 func (service *WalletAddressService) GetList() (*scopes.PaginateModel, error) {
-
 	walletAddresses, err := service.IWalletAddressRepository.GetList()
 	if err != nil {
 		return nil, err
@@ -55,7 +53,6 @@ func (service *WalletAddressService) GetList() (*scopes.PaginateModel, error) {
 }
 
 func (service *WalletAddressService) GetActiveList() (*scopes.PaginateModel, error) {
-
 	walletAddresses, err := service.IWalletAddressRepository.GetActiveList()
 	if err != nil {
 		return nil, err
@@ -78,21 +75,15 @@ func (service *WalletAddressService) GetByUuid(uuid *uuid.UUID) (*model.WalletAd
 }
 
 func (service *WalletAddressService) Create(request *request.CreateWalletAddressRequest) (*model.WalletAddress, error) {
-	blockchain, err := service.IBlockchainService.GetByName(request.BlockchainName)
+	blockchain, err := service.IBlockchainService.GetByName(request.Blockchain)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find blockchain with name %s: %w", request.BlockchainName, err)
-	}
-
-	//validating wallet_addresses
-	isValid := validator.IsValidWalletAddress(blockchain.NativeAsset, request.WalletAddress)
-	if !isValid {
-		return nil, fmt.Errorf("invalid address: %s", request.WalletAddress)
+		return nil, fmt.Errorf("failed to find blockchain with name %s: %w", request.Blockchain, err)
 	}
 
 	walletAddress := &model.WalletAddress{
 		WalletAddress:     request.WalletAddress,
 		BlockchainID:      blockchain.ID,
-		WalletAddressName: request.WalletAddressName,
+		WalletAddressName: request.WalletAddress,
 		IsActive:          request.IsActive,
 	}
 
@@ -109,21 +100,15 @@ func (service *WalletAddressService) Delete(uuid *uuid.UUID) error {
 }
 
 func (service *WalletAddressService) Update(uuid *uuid.UUID, request *request.CreateWalletAddressRequest) (*model.WalletAddress, error) {
-	blockchain, err := service.IBlockchainService.GetByName(request.BlockchainName)
+	blockchain, err := service.IBlockchainService.GetByName(request.Blockchain)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find blockchain with name %s: %w", request.BlockchainName, err)
-	}
-
-	//validating wallet_addresses
-	isValid := validator.IsValidWalletAddress(blockchain.NativeAsset, request.WalletAddress)
-	if !isValid {
-		return nil, fmt.Errorf("invalid address: %s", request.WalletAddress)
+		return nil, fmt.Errorf("failed to find blockchain with name %s: %w", request.Blockchain, err)
 	}
 
 	return service.IWalletAddressRepository.Update(uuid, &model.WalletAddress{
 		WalletAddress:     request.WalletAddress,
 		BlockchainID:      blockchain.ID,
-		WalletAddressName: request.WalletAddressName,
+		WalletAddressName: request.WalletAddress,
 		IsActive:          request.IsActive,
 	})
 }
