@@ -22,7 +22,7 @@ func (controller *WalletAddressController) GetList(c *gin.Context) {
 	walletAddress, err := controller.IWalletAddressService.GetList()
 
 	if err != nil {
-		response.Api(c).SetStatusCode(http.StatusNotFound).Send()
+		response.Api(c).SetStatusCode(http.StatusNotFound).SetMessage(err.Error()).Send()
 		return
 	}
 
@@ -170,6 +170,44 @@ func (controller *WalletAddressController) Update(c *gin.Context) {
 		SetStatusCode(http.StatusCreated).
 		SetData(map[string]interface{}{
 			"walletAddress": walletAddress,
+		}).
+		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
+		Send()
+
+}
+
+func (controller *WalletAddressController) GetTransactions(c *gin.Context) {
+	uuidStr := c.Param("uuid")
+
+	// Parse the string to a UUID
+	uuid, err := uuid.Parse(uuidStr)
+	if err != nil {
+		response.Api(c).Send()
+		return
+	}
+
+	walletAddress, err := controller.IWalletAddressService.GetByUuid(&uuid)
+
+	if err != nil {
+		response.Api(c).
+			SetStatusCode(http.StatusNotFound).
+			SetMessage(err.Error()).
+			Send()
+		return
+	}
+
+	transactions, err := controller.IWalletAddressService.GetTransactions(walletAddress)
+	if err != nil {
+		response.Api(c).
+			SetMessage(err.Error()).
+			Send()
+		return
+	}
+
+	response.Api(c).
+		SetStatusCode(http.StatusCreated).
+		SetData(map[string]interface{}{
+			"transactions": transactions,
 		}).
 		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
 		Send()
