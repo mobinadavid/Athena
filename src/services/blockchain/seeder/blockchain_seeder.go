@@ -20,7 +20,7 @@ func SeedBlockchain() {
 	}
 
 	titleBsc := map[string]string{
-		"en": "Tron",
+		"en": "Binance",
 		"fa": "بایننس",
 	}
 	bsc, err := json.Marshal(titleBsc)

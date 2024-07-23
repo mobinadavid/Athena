@@ -107,7 +107,7 @@ func (service *WalletAddressService) GetTransactions(walletAddress string, block
 
 	switch blockchain.NativeAsset {
 	case "ETH":
-		ethTransactions, err := etherscan.FetchEthTransaction(walletAddress, explorer.BaseUrl, explorer.ApiKey)
+		ethTransactions, err := etherscan.FetchEthTransaction(walletAddress, explorer.BaseUrl)
 		if err != nil {
 			return nil, fmt.Errorf("error fetching Ethereum transactions: %w", err)
 		}
@@ -123,9 +123,9 @@ func (service *WalletAddressService) GetTransactions(walletAddress string, block
 		return trxTransactions, nil
 
 	case "BSC":
-		bscTransactions, err := bscscan.FetchBscTransaction(walletAddress, explorer.BaseUrl, explorer.ApiKey)
+		bscTransactions, err := bscscan.FetchBscTransaction(walletAddress, explorer.BaseUrl)
 		if err != nil {
-			return nil, fmt.Errorf("error fetching Tron transactions: %w", err)
+			return nil, fmt.Errorf("error fetching Binanace transactions: %w", err)
 		}
 
 		return bscTransactions, nil
@@ -156,6 +156,7 @@ func (service *WalletAddressService) HandleDeposits() error {
 
 			return fmt.Errorf("failed to get transactions for wallet address %s: %w", walletAddress.WalletAddress, err)
 		}
+
 		for _, tx := range txs {
 			v := reflect.ValueOf(tx)
 			t := v.Type()

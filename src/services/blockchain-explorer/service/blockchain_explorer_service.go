@@ -59,7 +59,6 @@ func (service *BlockchainExplorerService) Create(request *request.CreateBlockcha
 		BlockchainExplorerName: request.BlockchainExplorerName,
 		IsActive:               request.IsActive,
 		IsDefault:              request.IsDefault,
-		ApiKey:                 request.Apikey,
 	}
 
 	blockchains := make([]*blockchain_model.Blockchain, 0, len(request.Blockchains))
@@ -94,7 +93,6 @@ func (service *BlockchainExplorerService) Update(uuid *uuid.UUID, request *reque
 		BlockchainExplorerName: request.BlockchainExplorerName,
 		IsActive:               request.IsActive,
 		IsDefault:              request.IsDefault,
-		ApiKey:                 request.Apikey,
 	}
 
 	blockchains := make([]*blockchain_model.Blockchain, 0, len(request.Blockchains))

@@ -1,17 +1,28 @@
 package etherscan
 
 import (
+	"athena/src/config"
+	"athena/src/pkg/vault"
 	"athena/src/services/payment-gateway/drivers/crypto/etherscan/model"
 	transaction_response "athena/src/services/transaction-response"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/go-resty/resty/v2"
+	"log"
 )
 
-func FetchEthTransaction(walletAddress string, baseUrl string, apiKey string) ([]transaction_response.Response, error) {
+func FetchEthTransaction(walletAddress string, baseUrl string) ([]transaction_response.Response, error) {
 
 	// Create a new Resty client
 	client := resty.New()
+	var configs = config.GetInstance()
+
+	secrets, err := vault.GetInstance().GetVault().KVv2("kv-v2").Get(context.Background(), configs.Get("APP_NAME")+"/blockchain-explorer")
+	if err != nil {
+		log.Println(err)
+	}
+	apiKey := secrets.Data["ethApiKey"].(string)
 
 	url := fmt.Sprintf("%s/api?module=account&action=txlist&address=%s&apikey=%s", baseUrl, walletAddress, apiKey)
 
