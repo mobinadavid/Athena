@@ -20,7 +20,6 @@ type Etherscan struct {
 }
 
 func NewEtherscan(baseUrl string) (*Etherscan, error) {
-
 	configs := config.GetInstance()
 	requestTimeout, _ := strconv.Atoi(configs.Get("ETH_REQUEST_TIMEOUT"))
 

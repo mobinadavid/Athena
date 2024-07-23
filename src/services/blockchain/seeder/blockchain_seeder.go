@@ -9,7 +9,6 @@ import (
 )
 
 func SeedBlockchain() {
-
 	titleTron := map[string]string{
 		"en": "Tron",
 		"fa": "ترون",

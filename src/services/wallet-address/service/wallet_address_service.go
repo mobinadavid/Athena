@@ -2,6 +2,7 @@ package service
 
 import (
 	"athena/src/database/scopes"
+	"athena/src/pkg/validator"
 	blockchain_explorer_service "athena/src/services/blockchain-explorer/service"
 	blockchain_model "athena/src/services/blockchain/model"
 	blockchain_service "athena/src/services/blockchain/service"
@@ -76,10 +77,15 @@ func (service *WalletAddressService) GetByUuid(uuid *uuid.UUID) (*model.WalletAd
 }
 
 func (service *WalletAddressService) Create(request *request.CreateWalletAddressRequest) (*model.WalletAddress, error) {
-
 	blockchain, err := service.IBlockchainService.GetByName(request.BlockchainName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find blockchain with name %s: %w", request.BlockchainName, err)
+	}
+
+	//validating wallet_addresses
+	isValid := validator.IsValidWalletAddress(request.BlockchainName, request.WalletAddress)
+	if !isValid {
+		return nil, fmt.Errorf("invalid address: %s", request.WalletAddress)
 	}
 
 	walletAddress := &model.WalletAddress{
@@ -95,7 +101,6 @@ func (service *WalletAddressService) Create(request *request.CreateWalletAddress
 	}
 
 	return walletOrm, nil
-
 }
 
 func (service *WalletAddressService) Delete(uuid *uuid.UUID) error {
@@ -103,10 +108,15 @@ func (service *WalletAddressService) Delete(uuid *uuid.UUID) error {
 }
 
 func (service *WalletAddressService) Update(uuid *uuid.UUID, request *request.CreateWalletAddressRequest) (*model.WalletAddress, error) {
-
 	blockchain, err := service.IBlockchainService.GetByName(request.BlockchainName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find blockchain with name %s: %w", request.BlockchainName, err)
+	}
+
+	//validating wallet_addresses
+	isValid := validator.IsValidWalletAddress(request.BlockchainName, request.WalletAddress)
+	if !isValid {
+		return nil, fmt.Errorf("invalid address: %s", request.WalletAddress)
 	}
 
 	return service.IWalletAddressRepository.Update(uuid, &model.WalletAddress{
@@ -119,7 +129,6 @@ func (service *WalletAddressService) Update(uuid *uuid.UUID, request *request.Cr
 
 // GetTransactions This method will connect to related blockchain explorer and returns the list of transactions for requested wallet address.
 func (service *WalletAddressService) GetTransactions(walletAddress string, blockchain *blockchain_model.Blockchain) ([]transaction_response.Response, error) {
-
 	explorer, err := service.IBlockchainExplorerService.GetExplorerByBlockchainId(blockchain.ID)
 	if err != nil {
 		return nil, fmt.Errorf("error finding explorer: %w", err)
@@ -173,7 +182,6 @@ func (service *WalletAddressService) GetTransactions(walletAddress string, block
 }
 
 func (service *WalletAddressService) HandleDeposits() error {
-
 	paginatedModel, err := service.GetActiveList()
 	if err != nil {
 		return err

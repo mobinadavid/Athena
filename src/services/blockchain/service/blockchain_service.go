@@ -28,7 +28,6 @@ func (service *BlockchainService) GetById(id uint) (*model.Blockchain, error) {
 }
 
 func (service *BlockchainService) GetList() (*scopes.PaginateModel, error) {
-
 	blockchains, err := service.IBlockchainRepository.GetList()
 	if err != nil {
 		return nil, err

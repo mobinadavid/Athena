@@ -24,7 +24,6 @@ type BlockchainExplorerRepository struct {
 }
 
 func (repository *BlockchainExplorerRepository) Create(blockchainExplorer *model.BlockchainExplorer) (*model.BlockchainExplorer, error) {
-
 	result := repository.IDatabaseHandler.GetClient().Create(&blockchainExplorer)
 	if result.Error != nil {
 		return nil, fmt.Errorf("blockchainExplorer creation failed: %s", result.Error.Error())
@@ -34,7 +33,6 @@ func (repository *BlockchainExplorerRepository) Create(blockchainExplorer *model
 }
 
 func (repository *BlockchainExplorerRepository) GetList() ([]*model.BlockchainExplorer, error) {
-
 	var blockchainExplorers []*model.BlockchainExplorer
 	result := repository.IDatabaseHandler.GetClient().Model(&model.BlockchainExplorer{})
 
@@ -50,7 +48,6 @@ func (repository *BlockchainExplorerRepository) GetList() ([]*model.BlockchainEx
 }
 
 func (repository *BlockchainExplorerRepository) GetByUuid(uuid *uuid.UUID) (*model.BlockchainExplorer, error) {
-
 	var blockchainExplorer model.BlockchainExplorer
 
 	// Preload blockchains
@@ -67,7 +64,6 @@ func (repository *BlockchainExplorerRepository) GetByUuid(uuid *uuid.UUID) (*mod
 }
 
 func (repository *BlockchainExplorerRepository) GetCount() (int64, error) {
-
 	var count int64
 	result := repository.IDatabaseHandler.GetClient().Model(&model.BlockchainExplorer{})
 
@@ -81,7 +77,6 @@ func (repository *BlockchainExplorerRepository) GetCount() (int64, error) {
 }
 
 func (repository *BlockchainExplorerRepository) Delete(uuid *uuid.UUID) error {
-
 	var blockchainExplorer model.BlockchainExplorer
 
 	result := repository.IDatabaseHandler.GetClient().Preload("Blockchains").First(&blockchainExplorer, "uuid = ?", uuid)
@@ -104,7 +99,6 @@ func (repository *BlockchainExplorerRepository) Delete(uuid *uuid.UUID) error {
 }
 
 func (repository *BlockchainExplorerRepository) Update(uuid *uuid.UUID, blockchainExplorer *model.BlockchainExplorer) (*model.BlockchainExplorer, error) {
-
 	var existing model.BlockchainExplorer
 	var result = repository.IDatabaseHandler.GetClient().Preload("Blockchains").First(&existing, "uuid = ?", uuid)
 

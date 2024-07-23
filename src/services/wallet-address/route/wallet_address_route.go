@@ -7,7 +7,6 @@ import (
 )
 
 func WalletAddressRouter(router *gin.RouterGroup) {
-
 	serviceContainer := services.GetContainer()
 
 	walletAddress := router.Group("wallet_address")

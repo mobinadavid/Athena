@@ -17,7 +17,6 @@ type BlockchainController struct {
 }
 
 func (controller *BlockchainController) GetList(c *gin.Context) {
-
 	var blockchain *scopes.PaginateModel
 
 	blockchain, err := controller.IBlockchainService.GetList()
@@ -37,7 +36,6 @@ func (controller *BlockchainController) GetList(c *gin.Context) {
 }
 
 func (controller *BlockchainController) GetByUuid(c *gin.Context) {
-
 	uuidStr := c.Param("uuid")
 
 	// Parse the string to a UUID

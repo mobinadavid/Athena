@@ -17,7 +17,6 @@ type WalletAddressController struct {
 }
 
 func (controller *WalletAddressController) GetList(c *gin.Context) {
-
 	var walletAddress *scopes.PaginateModel
 
 	walletAddress, err := controller.IWalletAddressService.GetList()
@@ -31,13 +30,12 @@ func (controller *WalletAddressController) GetList(c *gin.Context) {
 		SetStatusCode(http.StatusOK).
 		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
 		SetData(map[string]interface{}{
-			"walletAddresses": walletAddress,
+			"wallet_addresses": walletAddress,
 		}).Send()
 	return
 }
 
 func (controller *WalletAddressController) GetByUuid(c *gin.Context) {
-
 	uuidStr := c.Param("uuid")
 
 	// Parse the string to a UUID

@@ -38,11 +38,10 @@ func isValidUuid(fl validator.FieldLevel) bool {
 	_, err := uuid.Parse(fl.Field().String())
 	return err == nil
 }
-func IsValidWalletAddress(blockchain string, walletAddress string) bool {
-
+func IsValidWalletAddress(nativeAsset string, walletAddress string) bool {
 	var regex string
 
-	switch blockchain {
+	switch nativeAsset {
 	case "BTC":
 		regex = `^([13][a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-z0-9]{39,59})$`
 	case "ETH", "BSC":

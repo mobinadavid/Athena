@@ -7,7 +7,6 @@ import (
 )
 
 func BlockchainExplorerRouter(router *gin.RouterGroup) {
-
 	serviceContainer := services.GetContainer()
 
 	blockchain := router.Group("blockchain_explorer")
