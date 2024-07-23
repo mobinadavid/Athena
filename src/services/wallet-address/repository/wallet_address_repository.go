@@ -16,12 +16,25 @@ type IWalletAddressRepository interface {
 	GetCount() (int64, error)
 	Delete(uuid *uuid.UUID) error
 	Update(uuid *uuid.UUID, req *model.WalletAddress) (*model.WalletAddress, error)
+	GetActiveList() ([]*model.WalletAddress, error)
 }
 
 type WalletAddressRepository struct {
 	IDatabaseHandler *database.Database
 }
 
+func (repository *WalletAddressRepository) GetActiveList() ([]*model.WalletAddress, error) {
+	var walletAddress []*model.WalletAddress
+
+	result := repository.IDatabaseHandler.GetClient()
+	result = result.Where("is_active = ?", true).Find(&walletAddress)
+
+	if result.Error != nil {
+		return nil, fmt.Errorf("walletAddress get list failed: %s", result.Error.Error())
+	}
+
+	return walletAddress, nil
+}
 func (repository *WalletAddressRepository) GetList() ([]*model.WalletAddress, error) {
 	var walletAddress []*model.WalletAddress
 

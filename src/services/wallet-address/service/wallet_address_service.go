@@ -24,6 +24,7 @@ type IWalletAddressService interface {
 	Delete(uuid *uuid.UUID) error
 	Update(uuid *uuid.UUID, request *request.CreateWalletAddressRequest) (*model.WalletAddress, error)
 	HandleDeposits() error
+	GetActiveList() (*scopes.PaginateModel, error)
 }
 
 type WalletAddressService struct {
@@ -35,6 +36,25 @@ type WalletAddressService struct {
 func (service *WalletAddressService) GetList() (*scopes.PaginateModel, error) {
 
 	walletAddresses, err := service.IWalletAddressRepository.GetList()
+	if err != nil {
+		return nil, err
+	}
+
+	allWalletAddressCount, err := service.IWalletAddressRepository.GetCount()
+	if err != nil {
+		return nil, err
+	}
+
+	return &scopes.PaginateModel{
+		TotalItems: allWalletAddressCount,
+		Items:      &walletAddresses,
+	}, nil
+
+}
+
+func (service *WalletAddressService) GetActiveList() (*scopes.PaginateModel, error) {
+
+	walletAddresses, err := service.IWalletAddressRepository.GetActiveList()
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +143,12 @@ func (service *WalletAddressService) GetTransactions(walletAddress string, block
 		return trxTransactions, nil
 
 	case "BSC":
-		bscTransactions, err := bscscan.FetchBscTransaction(walletAddress, explorer.BaseUrl)
+
+		bscScanApi, err := bscscan.NewBscscan(explorer.BaseUrl)
+		if err != nil {
+			return nil, err
+		}
+		bscTransactions, err := bscScanApi.FetchBscTransaction(walletAddress)
 		if err != nil {
 			return nil, fmt.Errorf("error fetching Binanace transactions: %w", err)
 		}
@@ -136,7 +161,7 @@ func (service *WalletAddressService) GetTransactions(walletAddress string, block
 
 func (service *WalletAddressService) HandleDeposits() error {
 
-	paginatedModel, err := service.GetList()
+	paginatedModel, err := service.GetActiveList()
 	if err != nil {
 		return err
 	}
