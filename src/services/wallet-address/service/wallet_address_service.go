@@ -127,6 +127,7 @@ func (service *WalletAddressService) GetTransactions(walletAddress string, block
 
 	switch blockchain.NativeAsset {
 	case "ETH":
+
 		etherScanApi, err := etherscan.NewEtherscan(explorer.BaseUrl)
 		if err != nil {
 			return nil, err
@@ -140,9 +141,15 @@ func (service *WalletAddressService) GetTransactions(walletAddress string, block
 		return ethTransactions, nil
 
 	case "TRX":
-		trxTransactions, err := tronscan.FetchTronTransactions(walletAddress, explorer.BaseUrl)
+
+		tronScanApi, err := tronscan.NewTronscan(explorer.BaseUrl)
 		if err != nil {
-			return nil, fmt.Errorf("error fetching Tron transactions: %w", err)
+			return nil, err
+		}
+
+		trxTransactions, err := tronScanApi.FetchTronTransactions(walletAddress)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching Binanace transactions: %w", err)
 		}
 
 		return trxTransactions, nil

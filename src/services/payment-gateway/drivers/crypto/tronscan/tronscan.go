@@ -1,21 +1,47 @@
 package tronscan
 
 import (
+	"athena/src/config"
 	"athena/src/services/payment-gateway/drivers/crypto/tronscan/model"
 	transaction_response "athena/src/services/transaction-response"
 	"encoding/json"
 	"fmt"
 	"github.com/go-resty/resty/v2"
+	"strconv"
+	"time"
 )
 
-func FetchTronTransactions(walletAddress string, baseUrl string) ([]transaction_response.Response, error) {
-	client := resty.New()
+type Tronscan struct {
+	apiClient *resty.Client
+	baseUrl   string
+}
 
-	url := fmt.Sprintf("%s/api/transaction?limit=20&start=0&address=%s", baseUrl, walletAddress)
+func NewTronscan(baseUrl string) (*Tronscan, error) {
+	configs := config.GetInstance()
+	requestTimeout, _ := strconv.Atoi(configs.Get("TRON_REQUEST_TIMEOUT"))
 
-	resp, err := client.R().
+	tronscan := &Tronscan{
+		apiClient: resty.New(),
+		baseUrl:   baseUrl,
+	}
+
+	tronscan.apiClient.
 		SetHeader("Content-Type", "application/json").
+		SetTimeout(time.Duration(requestTimeout) * time.Second)
+
+	if proxy := configs.Get("TRON_PROXY"); proxy != "" {
+		tronscan.apiClient.SetProxy(proxy)
+	}
+
+	return tronscan, nil
+}
+
+func (t *Tronscan) FetchTronTransactions(walletAddress string) ([]transaction_response.Response, error) {
+	url := fmt.Sprintf("%s/api/transaction?limit=20&start=0&address=%s", t.baseUrl, walletAddress)
+
+	resp, err := t.apiClient.R().
 		Get(url)
+
 	if err != nil {
 		return nil, fmt.Errorf("error making request to Tronscan: %w", err)
 	}
