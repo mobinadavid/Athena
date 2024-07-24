@@ -55,7 +55,7 @@ func isValidWalletAddress(fl validator.FieldLevel) bool {
 
 	var regex string
 	switch blockchain {
-	case "BTC":
+	case "Bitcoin":
 		regex = `^([13][a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-z0-9]{39,59})$`
 	case "Ethereum", "Binance":
 		regex = `^0x[a-fA-F0-9]{40}$`

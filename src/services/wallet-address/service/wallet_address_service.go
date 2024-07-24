@@ -2,13 +2,13 @@ package service
 
 import (
 	"athena/src/database/scopes"
-	blockchain_explorer_service "athena/src/services/blockchain-explorer/service"
-	blockchain_model "athena/src/services/blockchain/model"
-	blockchain_service "athena/src/services/blockchain/service"
+	blockchainExplorerService "athena/src/services/blockchain-explorer/service"
+	blockchainModel "athena/src/services/blockchain/model"
+	blockchainService "athena/src/services/blockchain/service"
 	"athena/src/services/payment-gateway/drivers/crypto/bscscan"
 	"athena/src/services/payment-gateway/drivers/crypto/etherscan"
 	"athena/src/services/payment-gateway/drivers/crypto/tronscan"
-	transaction_response "athena/src/services/transaction-response"
+	transactionResponse "athena/src/services/transaction-response"
 	"athena/src/services/wallet-address/model"
 	"athena/src/services/wallet-address/repository"
 	"athena/src/services/wallet-address/request"
@@ -25,13 +25,13 @@ type IWalletAddressService interface {
 	Update(uuid *uuid.UUID, request *request.CreateWalletAddressRequest) (*model.WalletAddress, error)
 	HandleDeposits() error
 	GetActiveList() (*scopes.PaginateModel, error)
-	GetTransactions(address *model.WalletAddress) ([]transaction_response.Response, error)
+	GetTransactions(address *model.WalletAddress) ([]transactionResponse.Response, error)
 }
 
 type WalletAddressService struct {
 	IWalletAddressRepository   repository.IWalletAddressRepository
-	IBlockchainService         blockchain_service.IBlockChainService
-	IBlockchainExplorerService blockchain_explorer_service.IBlockchainExplorerService
+	IBlockchainService         blockchainService.IBlockChainService
+	IBlockchainExplorerService blockchainExplorerService.IBlockchainExplorerService
 }
 
 func (service *WalletAddressService) GetList() (*scopes.PaginateModel, error) {
@@ -114,7 +114,7 @@ func (service *WalletAddressService) Update(uuid *uuid.UUID, request *request.Cr
 }
 
 // GetTransactions This method will connect to related blockchain explorer and returns the list of transactions for requested wallet address.
-func (service *WalletAddressService) GetTransactionsList(walletAddress string, blockchain *blockchain_model.Blockchain) ([]transaction_response.Response, error) {
+func (service *WalletAddressService) GetTransactionsList(walletAddress string, blockchain *blockchainModel.Blockchain) ([]transactionResponse.Response, error) {
 	explorer, err := service.IBlockchainExplorerService.GetExplorerByBlockchainId(blockchain.ID)
 	if err != nil {
 		return nil, fmt.Errorf("error finding explorer: %w", err)
@@ -205,7 +205,7 @@ func (service *WalletAddressService) HandleDeposits() error {
 }
 
 // Get Transactions by wallet-address
-func (service *WalletAddressService) GetTransactions(walletAddress *model.WalletAddress) ([]transaction_response.Response, error) {
+func (service *WalletAddressService) GetTransactions(walletAddress *model.WalletAddress) ([]transactionResponse.Response, error) {
 	blockchain, err := service.IBlockchainService.GetById(walletAddress.BlockchainID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get blockchain for wallet address %s: %w", walletAddress.WalletAddress, err)
