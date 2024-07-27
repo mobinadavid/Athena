@@ -56,7 +56,7 @@ func (service *WalletAddressService) GetList() (*scopes.PaginateModel, error) {
 
 func (service *WalletAddressService) GetWalletAddress(request *request.GetWalletAddress) ([]string, error) {
 	if request.Number <= 0 {
-		return nil, errors.New("invalid number of wallet_address requested")
+		return nil, errors.New("invalid number of wallet address requested")
 	}
 
 	walletAddresses, err := service.IWalletAddressRepository.GetWalletAddress(request.Blockchain, request.Number)
