@@ -26,7 +26,7 @@ type IWalletAddressService interface {
 	Update(uuid *uuid.UUID, request *request.CreateWalletAddressRequest) (*model.WalletAddress, error)
 	HandleDeposits() error
 	GetActiveList() (*scopes.PaginateModel, error)
-	GetTransactions(address *model.WalletAddress) ([]transaction_response.Response, error)
+	GetTransactions(address *model.WalletAddress) ([]transactionResponse.Response, error)
 	GetWalletAddress(request *request.GetWalletAddress) ([]string, error)
 }
 
@@ -56,7 +56,7 @@ func (service *WalletAddressService) GetList() (*scopes.PaginateModel, error) {
 
 func (service *WalletAddressService) GetWalletAddress(request *request.GetWalletAddress) ([]string, error) {
 	if request.Number <= 0 {
-		return nil, errors.New("invalid number of wallet address requested")
+		return nil, errors.New("invalid number of wallet_address requested")
 	}
 
 	walletAddresses, err := service.IWalletAddressRepository.GetWalletAddress(request.Blockchain, request.Number)
