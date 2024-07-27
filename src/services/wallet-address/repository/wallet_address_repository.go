@@ -31,7 +31,7 @@ func (repository *WalletAddressRepository) GetWalletAddress(blockchainName strin
 
 	// Query to find active and not allocated wallet addresses for the given blockchain
 	if err := repository.IDatabaseHandler.GetClient().Joins("JOIN blockchains ON blockchains.id = wallet_addresses.blockchain_id").
-		Where("blockchains.blockchain_name = ? AND wallet_addresses.is_active = ? AND wallet_addresses.allocated_at IS NULL", blockchainName, true).
+		Where("blockchains.name = ? AND wallet_addresses.is_active = ? AND wallet_addresses.allocated_at IS NULL", blockchainName, true).
 		Limit(number).
 		Find(&walletAddresses).Error; err != nil {
 		return nil, err
@@ -105,13 +105,14 @@ func (repository *WalletAddressRepository) Create(walletAddress *model.WalletAdd
 func (repository *WalletAddressRepository) GetCount() (int64, error) {
 	var count int64
 
-	result := repository.IDatabaseHandler.GetClient().Model(&model.WalletAddress{})
+	result := repository.IDatabaseHandler.GetClient().Model(&model.WalletAddress{}).Count(&count)
 
 	if result.Error != nil {
 		return 0, fmt.Errorf("walletAddresses get count failed: %s", result.Error.Error())
 	}
 
 	return count, nil
+
 }
 
 func (repository *WalletAddressRepository) Delete(uuid *uuid.UUID) error {

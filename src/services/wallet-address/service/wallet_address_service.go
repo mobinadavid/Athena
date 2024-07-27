@@ -96,10 +96,10 @@ func (service *WalletAddressService) Create(request *request.CreateWalletAddress
 	}
 
 	walletAddress := &model.WalletAddress{
-		WalletAddress:     request.WalletAddress,
-		BlockchainID:      blockchain.ID,
-		WalletAddressName: request.Name,
-		IsActive:          request.IsActive,
+		WalletAddress: request.WalletAddress,
+		BlockchainID:  blockchain.ID,
+		Name:          request.Name,
+		IsActive:      request.IsActive,
 	}
 
 	walletOrm, err := service.IWalletAddressRepository.Create(walletAddress)
@@ -121,10 +121,10 @@ func (service *WalletAddressService) Update(uuid *uuid.UUID, request *request.Cr
 	}
 
 	return service.IWalletAddressRepository.Update(uuid, &model.WalletAddress{
-		WalletAddress:     request.WalletAddress,
-		BlockchainID:      blockchain.ID,
-		WalletAddressName: request.Name,
-		IsActive:          request.IsActive,
+		WalletAddress: request.WalletAddress,
+		BlockchainID:  blockchain.ID,
+		Name:          request.Name,
+		IsActive:      request.IsActive,
 	})
 }
 

@@ -14,7 +14,7 @@ type Blockchain struct {
 	UUID            uuid.UUID             `gorm:"default:uuid_generate_v4()" json:"uuid"`
 	NativeAsset     string                `gorm:"not null" json:"native_asset"`
 	Title           datatypes.JSON        `gorm:"type:json" json:"title"`
-	BlockchainName  string                `gorm:"not null;uniqueIndex" json:"blockchain_name"`
+	Name            string                `gorm:"not null;uniqueIndex" json:"name"`
 	IsActive        *bool                 `gorm:"type:bool;default:true" json:"is_active"`
 	CreatedAt       time.Time             `json:"created_at"`
 	UpdatedAt       time.Time             `json:"updated_at"`

@@ -56,10 +56,10 @@ func (service *BlockchainService) GetByName(name string) (*model.Blockchain, err
 
 func (service *BlockchainService) Create(request *request.CreateBlockchainRequest) (*model.Blockchain, error) {
 	blockchain := &model.Blockchain{
-		NativeAsset:    request.NativeAsset,
-		Title:          request.Title,
-		IsActive:       request.IsActive,
-		BlockchainName: request.BlockchainName,
+		NativeAsset: request.NativeAsset,
+		Title:       request.Title,
+		IsActive:    request.IsActive,
+		Name:        request.Name,
 	}
 	blockchainOrm, err := service.IBlockchainRepository.Create(blockchain)
 	if err != nil {
@@ -74,10 +74,10 @@ func (service *BlockchainService) Delete(uuid *uuid.UUID) error {
 
 func (service *BlockchainService) Update(uuid *uuid.UUID, request *request.CreateBlockchainRequest) (*model.Blockchain, error) {
 	blockchain := &model.Blockchain{
-		NativeAsset:    request.NativeAsset,
-		Title:          request.Title,
-		IsActive:       request.IsActive,
-		BlockchainName: request.BlockchainName,
+		NativeAsset: request.NativeAsset,
+		Title:       request.Title,
+		IsActive:    request.IsActive,
+		Name:        request.Name,
 	}
 	blockchainOrm, err := service.IBlockchainRepository.Update(uuid, blockchain)
 	if err != nil {

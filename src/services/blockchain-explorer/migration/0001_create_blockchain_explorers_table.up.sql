@@ -3,7 +3,7 @@ create table if not exists blockchain_explorers
     id              bigserial primary key,
     uuid            uuid default uuid_generate_v4(),
     base_url        text not null,
-    blockchain_explorer_name    text not null,
+    name            text not null,
     is_active       boolean default true,
     is_default      boolean default true,
     created_at      timestamp with time zone,

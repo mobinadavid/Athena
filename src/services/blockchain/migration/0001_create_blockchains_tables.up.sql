@@ -3,7 +3,7 @@ create table if not exists blockchains (
     id                bigserial primary key,
     uuid              uuid default uuid_generate_v4(),
     title             jsonb,
-    blockchain_name   text not null,
+    name              text not null,
     native_asset      text not null,
     is_active         boolean default true,
     created_at        timestamp with time zone,

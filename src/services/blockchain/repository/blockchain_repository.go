@@ -62,7 +62,7 @@ func (repository *BlockchainRepository) GetByUuid(uuid *uuid.UUID) (*model.Block
 func (repository *BlockchainRepository) GetByName(name string) (*model.Blockchain, error) {
 	var blockchain model.Blockchain
 
-	result := repository.IDatabaseHandler.GetClient().Where("is_active = ? ", true).First(&blockchain, "blockchain_name = ?", name)
+	result := repository.IDatabaseHandler.GetClient().Where("is_active = ? ", true).First(&blockchain, "name = ?", name)
 	if result.Error != nil && errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("blockchain get by name failed: %s", result.Error.Error())
 	}

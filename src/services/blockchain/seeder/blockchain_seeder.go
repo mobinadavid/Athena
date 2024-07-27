@@ -39,28 +39,28 @@ func SeedBlockchain() {
 	isActive := true
 	blockchains := []*model.Blockchain{
 		{
-			IsActive:       &isActive,
-			Title:          tron,
-			NativeAsset:    "TRX",
-			BlockchainName: "Tron",
+			IsActive:    &isActive,
+			Title:       tron,
+			NativeAsset: "TRX",
+			Name:        "Tron",
 		},
 		{
-			IsActive:       &isActive,
-			Title:          eth,
-			NativeAsset:    "ETH",
-			BlockchainName: "Ethereum",
+			IsActive:    &isActive,
+			Title:       eth,
+			NativeAsset: "ETH",
+			Name:        "Ethereum",
 		},
 		{
-			IsActive:       &isActive,
-			Title:          bsc,
-			NativeAsset:    "BSC",
-			BlockchainName: "Binance",
+			IsActive:    &isActive,
+			Title:       bsc,
+			NativeAsset: "BSC",
+			Name:        "Binance",
 		},
 	}
 
 	var db = database.GetInstance()
 	for _, blockchain := range blockchains {
-		db.GetClient().FirstOrCreate(&blockchain, model.Blockchain{BlockchainName: blockchain.BlockchainName, NativeAsset: blockchain.NativeAsset})
+		db.GetClient().FirstOrCreate(&blockchain, model.Blockchain{Name: blockchain.Name, NativeAsset: blockchain.NativeAsset})
 	}
 	log.Println("Blockchain Seeder executed successfully.")
 }

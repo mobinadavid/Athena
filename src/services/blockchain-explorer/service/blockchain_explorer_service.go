@@ -55,10 +55,10 @@ func (service *BlockchainExplorerService) GetExplorerByBlockchainId(id uint) (*m
 func (service *BlockchainExplorerService) Create(request *request.CreateBlockchainExplorerRequest) (*model.BlockchainExplorer, error) {
 
 	blockchainExplorer := &model.BlockchainExplorer{
-		BaseUrl:                request.BaseUrl,
-		BlockchainExplorerName: request.BlockchainExplorerName,
-		IsActive:               request.IsActive,
-		IsDefault:              request.IsDefault,
+		BaseUrl:   request.BaseUrl,
+		Name:      request.Name,
+		IsActive:  request.IsActive,
+		IsDefault: request.IsDefault,
 	}
 
 	blockchains := make([]*blockchain_model.Blockchain, 0, len(request.Blockchains))
@@ -89,10 +89,10 @@ func (service *BlockchainExplorerService) Delete(uuid *uuid.UUID) error {
 func (service *BlockchainExplorerService) Update(uuid *uuid.UUID, request *request.CreateBlockchainExplorerRequest) (*model.BlockchainExplorer, error) {
 
 	blockchainExplorer := &model.BlockchainExplorer{
-		BaseUrl:                request.BaseUrl,
-		BlockchainExplorerName: request.BlockchainExplorerName,
-		IsActive:               request.IsActive,
-		IsDefault:              request.IsDefault,
+		BaseUrl:   request.BaseUrl,
+		Name:      request.Name,
+		IsActive:  request.IsActive,
+		IsDefault: request.IsDefault,
 	}
 
 	blockchains := make([]*blockchain_model.Blockchain, 0, len(request.Blockchains))
