@@ -12,6 +12,7 @@ import (
 	"athena/src/services/wallet-address/model"
 	"athena/src/services/wallet-address/repository"
 	"athena/src/services/wallet-address/request"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"reflect"
@@ -25,7 +26,8 @@ type IWalletAddressService interface {
 	Update(uuid *uuid.UUID, request *request.CreateWalletAddressRequest) (*model.WalletAddress, error)
 	HandleDeposits() error
 	GetActiveList() (*scopes.PaginateModel, error)
-	GetTransactions(address *model.WalletAddress) ([]transactionResponse.Response, error)
+	GetTransactions(address *model.WalletAddress) ([]transaction_response.Response, error)
+	GetWalletAddress(request *request.GetWalletAddress) ([]string, error)
 }
 
 type WalletAddressService struct {
@@ -50,6 +52,19 @@ func (service *WalletAddressService) GetList() (*scopes.PaginateModel, error) {
 		Items:      &walletAddresses,
 	}, nil
 
+}
+
+func (service *WalletAddressService) GetWalletAddress(request *request.GetWalletAddress) ([]string, error) {
+	if request.Number <= 0 {
+		return nil, errors.New("invalid number of wallet addresses requested")
+	}
+
+	walletAddresses, err := service.IWalletAddressRepository.GetWalletAddress(request.Blockchain, request.Number)
+	if err != nil {
+		return nil, err
+	}
+
+	return walletAddresses, nil
 }
 
 func (service *WalletAddressService) GetActiveList() (*scopes.PaginateModel, error) {
@@ -83,7 +98,7 @@ func (service *WalletAddressService) Create(request *request.CreateWalletAddress
 	walletAddress := &model.WalletAddress{
 		WalletAddress:     request.WalletAddress,
 		BlockchainID:      blockchain.ID,
-		WalletAddressName: request.WalletAddress,
+		WalletAddressName: request.Name,
 		IsActive:          request.IsActive,
 	}
 
@@ -108,7 +123,7 @@ func (service *WalletAddressService) Update(uuid *uuid.UUID, request *request.Cr
 	return service.IWalletAddressRepository.Update(uuid, &model.WalletAddress{
 		WalletAddress:     request.WalletAddress,
 		BlockchainID:      blockchain.ID,
-		WalletAddressName: request.WalletAddress,
+		WalletAddressName: request.Name,
 		IsActive:          request.IsActive,
 	})
 }

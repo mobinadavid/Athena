@@ -16,6 +16,41 @@ type WalletAddressController struct {
 	IWalletAddressService service.IWalletAddressService
 }
 
+func (controller *WalletAddressController) GetWalletAddress(c *gin.Context) {
+	var req request.GetWalletAddress
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Api(c).Send()
+		return
+	}
+
+	// Validate the payload.
+	if err := validator.Validate(&req, c.GetString("locale")); err != nil {
+		response.Api(c).
+			SetStatusCode(http.StatusUnprocessableEntity).
+			SetErrors(err).
+			Send()
+		return
+	}
+
+	walletAddress, err := controller.IWalletAddressService.GetWalletAddress(&req)
+	if err != nil {
+		response.Api(c).
+			SetMessage(err.Error()).
+			Send()
+		return
+	}
+
+	// Return response.
+	response.Api(c).
+		SetStatusCode(http.StatusCreated).
+		SetData(map[string]interface{}{
+			"wallet_address": walletAddress,
+		}).
+		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
+		Send()
+
+}
+
 func (controller *WalletAddressController) GetList(c *gin.Context) {
 	var walletAddress *scopes.PaginateModel
 
@@ -59,7 +94,7 @@ func (controller *WalletAddressController) GetByUuid(c *gin.Context) {
 		SetStatusCode(http.StatusOK).
 		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
 		SetData(map[string]interface{}{
-			"walletAddress:": walletAddress,
+			"wallet_address:": walletAddress,
 		}).
 		Send()
 	return
@@ -94,7 +129,7 @@ func (controller *WalletAddressController) Create(c *gin.Context) {
 	response.Api(c).
 		SetStatusCode(http.StatusCreated).
 		SetData(map[string]interface{}{
-			"walletAddress": walletAddress,
+			"wallet_address": walletAddress,
 		}).
 		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
 		Send()
@@ -169,7 +204,7 @@ func (controller *WalletAddressController) Update(c *gin.Context) {
 	response.Api(c).
 		SetStatusCode(http.StatusCreated).
 		SetData(map[string]interface{}{
-			"walletAddress": walletAddress,
+			"wallet_address": walletAddress,
 		}).
 		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
 		Send()

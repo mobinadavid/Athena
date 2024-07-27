@@ -61,7 +61,7 @@ func (controller *BlockchainExplorerController) GetByUuid(c *gin.Context) {
 		SetStatusCode(http.StatusOK).
 		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
 		SetData(map[string]interface{}{
-			"blockchainExplorer:": blockchainExplorer,
+			"blockchain_explorer:": blockchainExplorer,
 		}).
 		Send()
 	return
@@ -98,7 +98,7 @@ func (controller *BlockchainExplorerController) Create(c *gin.Context) {
 	response.Api(c).
 		SetStatusCode(http.StatusCreated).
 		SetData(map[string]interface{}{
-			"blockchainExplorer": blockchainExplorer,
+			"blockchain_explorer": blockchainExplorer,
 		}).
 		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
 		Send()
@@ -173,7 +173,7 @@ func (controller *BlockchainExplorerController) Update(c *gin.Context) {
 	response.Api(c).
 		SetStatusCode(http.StatusCreated).
 		SetData(map[string]interface{}{
-			"blockchainExplorer": blockchainExplorer,
+			"blockchain_explorer": blockchainExplorer,
 		}).
 		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
 		Send()

@@ -9,7 +9,7 @@ import (
 type WalletAddress struct {
 	ID                uint           `gorm:"primaryKey" json:"id"`
 	UUID              uuid.UUID      `gorm:"default:uuid_generate_v4()" json:"uuid"`
-	WalletAddressName string         `gorm:"default:null;uniqueIndex" json:"title"`
+	WalletAddressName string         `gorm:"default:null;uniqueIndex" json:"name"`
 	WalletAddress     string         `gorm:"unique" json:"wallet_address"`
 	WebhookURL        string         `gorm:"unique" json:"webhook_url"`
 	IsActive          *bool          `gorm:"type:bool;default:true" json:"is_active"`

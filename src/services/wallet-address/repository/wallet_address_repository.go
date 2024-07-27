@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"time"
 )
 
 type IWalletAddressRepository interface {
@@ -17,10 +18,42 @@ type IWalletAddressRepository interface {
 	Delete(uuid *uuid.UUID) error
 	Update(uuid *uuid.UUID, req *model.WalletAddress) (*model.WalletAddress, error)
 	GetActiveList() ([]*model.WalletAddress, error)
+	GetWalletAddress(blockchainName string, number int) ([]string, error)
 }
 
 type WalletAddressRepository struct {
 	IDatabaseHandler *database.Database
+}
+
+func (repository *WalletAddressRepository) GetWalletAddress(blockchainName string, number int) ([]string, error) {
+	var walletAddresses []*model.WalletAddress
+	var walletAddressesName []string
+
+	// Query to find active and not allocated wallet addresses for the given blockchain
+	if err := repository.IDatabaseHandler.GetClient().Joins("JOIN blockchains ON blockchains.id = wallet_addresses.blockchain_id").
+		Where("blockchains.blockchain_name = ? AND wallet_addresses.is_active = ? AND wallet_addresses.allocated_at IS NULL", blockchainName, true).
+		Limit(number).
+		Find(&walletAddresses).Error; err != nil {
+		return nil, err
+	}
+
+	if len(walletAddresses) == 0 {
+		return nil, errors.New("no wallet addresses found")
+	}
+
+	// Update the found wallet addresses to allocated
+	for i := range walletAddresses {
+		walletAddresses[i].AllocatedAt = time.Now()
+		if err := repository.IDatabaseHandler.GetClient().Save(&walletAddresses[i]).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	for _, walletAddress := range walletAddresses {
+		walletAddressesName = append(walletAddressesName, walletAddress.WalletAddress)
+	}
+
+	return walletAddressesName, nil
 }
 
 func (repository *WalletAddressRepository) GetActiveList() ([]*model.WalletAddress, error) {
@@ -35,6 +68,7 @@ func (repository *WalletAddressRepository) GetActiveList() ([]*model.WalletAddre
 
 	return walletAddress, nil
 }
+
 func (repository *WalletAddressRepository) GetList() ([]*model.WalletAddress, error) {
 	var walletAddress []*model.WalletAddress
 
