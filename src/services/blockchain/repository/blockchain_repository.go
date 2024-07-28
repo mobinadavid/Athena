@@ -27,7 +27,7 @@ type BlockchainRepository struct {
 func (repository *BlockchainRepository) GetList() ([]*model.Blockchain, error) {
 	var blockchain []*model.Blockchain
 
-	result := repository.IDatabaseHandler.GetClient().Scopes()
+	result := repository.IDatabaseHandler.GetClient().Preload("WalletAddresses").Model(&model.Blockchain{}).Scopes()
 	result = result.Find(&blockchain)
 
 	if result.Error != nil {
@@ -35,6 +35,7 @@ func (repository *BlockchainRepository) GetList() ([]*model.Blockchain, error) {
 	}
 
 	return blockchain, nil
+
 }
 
 func (repository *BlockchainRepository) GetById(id uint) (*model.Blockchain, error) {

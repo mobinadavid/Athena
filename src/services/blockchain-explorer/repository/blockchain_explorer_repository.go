@@ -34,7 +34,7 @@ func (repository *BlockchainExplorerRepository) Create(blockchainExplorer *model
 
 func (repository *BlockchainExplorerRepository) GetList() ([]*model.BlockchainExplorer, error) {
 	var blockchainExplorers []*model.BlockchainExplorer
-	result := repository.IDatabaseHandler.GetClient().Model(&model.BlockchainExplorer{})
+	result := repository.IDatabaseHandler.GetClient().Preload("Blockchains").Model(&model.BlockchainExplorer{})
 
 	result = result.Scopes()
 

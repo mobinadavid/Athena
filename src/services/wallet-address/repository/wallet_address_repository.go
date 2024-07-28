@@ -2,7 +2,9 @@ package repository
 
 import (
 	"athena/src/database"
+	blockchain_model "athena/src/services/blockchain/model"
 	"athena/src/services/wallet-address/model"
+
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -26,31 +28,34 @@ type WalletAddressRepository struct {
 }
 
 func (repository *WalletAddressRepository) GetWalletAddress(blockchainName string, count int) ([]string, error) {
-	var walletAddresses []*model.WalletAddress
+	var blockchain blockchain_model.Blockchain
 	var walletAddressesName []string
 
-	// Query to find active and not allocated wallet addresses for the given blockchain
+	// First, find the blockchain by name and preload related wallet addresses
 	if err := repository.IDatabaseHandler.GetClient().
-		Preload("Blockchain"). // Ensure this matches the actual relationship name in your GORM model
-		Where("blockchains.name = ? AND wallet_addresses.is_active = ? AND wallet_addresses.allocated_at IS NULL", blockchainName, true).
-		Limit(count).
-		Find(&walletAddresses).Error; err != nil {
+		Preload("WalletAddresses", func(db *gorm.DB) *gorm.DB {
+			return db.Where("is_active = ? AND allocated_at IS NULL", true).Limit(count)
+		}).
+		Where("name = ?", blockchainName).
+		First(&blockchain).Error; err != nil {
 		return nil, err
 	}
 
-	if len(walletAddresses) == 0 {
+	// If no wallet addresses are found, return an error
+	if len(blockchain.WalletAddresses) == 0 {
 		return nil, errors.New("no wallet addresses found")
 	}
 
 	// Update the found wallet addresses to allocated
-	for i := range walletAddresses {
-		walletAddresses[i].AllocatedAt = time.Now()
-		if err := repository.IDatabaseHandler.GetClient().Save(&walletAddresses[i]).Error; err != nil {
+	for _, walletAddress := range blockchain.WalletAddresses {
+		walletAddress.AllocatedAt = time.Now()
+		if err := repository.IDatabaseHandler.GetClient().Save(&walletAddress).Error; err != nil {
 			return nil, err
 		}
 	}
 
-	for _, walletAddress := range walletAddresses {
+	// Collect wallet addresses for return
+	for _, walletAddress := range blockchain.WalletAddresses {
 		walletAddressesName = append(walletAddressesName, walletAddress.WalletAddress)
 	}
 

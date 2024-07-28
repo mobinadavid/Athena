@@ -4,7 +4,7 @@ import (
 	"athena/src/config"
 	"athena/src/pkg/vault"
 	"athena/src/services/payment-gateway/drivers/crypto/etherscan/model"
-	transaction_response "athena/src/services/transaction-response"
+	"athena/src/services/wallet-address/transaction-response"
 	"context"
 	"encoding/json"
 	"fmt"

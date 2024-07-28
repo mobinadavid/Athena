@@ -8,10 +8,10 @@ import (
 	"athena/src/services/payment-gateway/drivers/crypto/bscscan"
 	"athena/src/services/payment-gateway/drivers/crypto/etherscan"
 	"athena/src/services/payment-gateway/drivers/crypto/tronscan"
-	transactionResponse "athena/src/services/transaction-response"
 	"athena/src/services/wallet-address/model"
 	"athena/src/services/wallet-address/repository"
 	"athena/src/services/wallet-address/request"
+	transactionResponse "athena/src/services/wallet-address/transaction-response"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -21,12 +21,12 @@ import (
 type IWalletAddressService interface {
 	GetList() (*scopes.PaginateModel, error)
 	Create(request *request.CreateWalletAddressRequest) (*model.WalletAddress, error)
-	GetByUuid(uuid *uuid.UUID) (*model.WalletAddress, error)
+	GetByUuid(uuid *uuid.UUID) (map[string]interface{}, error)
 	Delete(uuid *uuid.UUID) error
 	Update(uuid *uuid.UUID, request *request.CreateWalletAddressRequest) (*model.WalletAddress, error)
 	HandleDeposits() error
 	GetActiveList() (*scopes.PaginateModel, error)
-	GetTransactions(address *model.WalletAddress) ([]transactionResponse.Response, error)
+	GetTransactions(address map[string]interface{}) ([]transactionResponse.Response, error)
 	GetWalletAddress(request *request.GetWalletAddress) ([]string, error)
 }
 
@@ -37,9 +37,33 @@ type WalletAddressService struct {
 }
 
 func (service *WalletAddressService) GetList() (*scopes.PaginateModel, error) {
+	var results []map[string]interface{}
+
 	walletAddresses, err := service.IWalletAddressRepository.GetList()
 	if err != nil {
 		return nil, err
+	}
+
+	for _, walletAddress := range walletAddresses {
+		blockchain, err := service.IBlockchainService.GetById(walletAddress.BlockchainID)
+		if err != nil {
+			return nil, err
+		}
+
+		result := map[string]interface{}{
+			"id":             walletAddress.ID,
+			"uuid":           walletAddress.UUID,
+			"name":           walletAddress.Name,
+			"wallet_address": walletAddress.WalletAddress,
+			"webhook_url":    walletAddress.WebhookURL,
+			"is_active":      walletAddress.IsActive,
+			"allocated_at":   walletAddress.AllocatedAt,
+			"created_at":     walletAddress.CreatedAt,
+			"updated_at":     walletAddress.UpdatedAt,
+			"deleted_at":     walletAddress.DeletedAt,
+			"blockchain":     blockchain.Name,
+		}
+		results = append(results, result)
 	}
 
 	allWalletAddressCount, err := service.IWalletAddressRepository.GetCount()
@@ -49,7 +73,7 @@ func (service *WalletAddressService) GetList() (*scopes.PaginateModel, error) {
 
 	return &scopes.PaginateModel{
 		TotalItems: allWalletAddressCount,
-		Items:      &walletAddresses,
+		Items:      results,
 	}, nil
 
 }
@@ -85,8 +109,28 @@ func (service *WalletAddressService) GetActiveList() (*scopes.PaginateModel, err
 
 }
 
-func (service *WalletAddressService) GetByUuid(uuid *uuid.UUID) (*model.WalletAddress, error) {
-	return service.IWalletAddressRepository.GetByUuid(uuid)
+func (service *WalletAddressService) GetByUuid(uuid *uuid.UUID) (map[string]interface{}, error) {
+	walletAddress, err := service.IWalletAddressRepository.GetByUuid(uuid)
+	if err != nil {
+		return nil, err
+	}
+	blockchain, err := service.IBlockchainService.GetById(walletAddress.BlockchainID)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]interface{}{
+		"id":              walletAddress.ID,
+		"uuid":            walletAddress.UUID,
+		"name":            walletAddress.Name,
+		"wallet_address":  walletAddress.WalletAddress,
+		"webhook_url":     walletAddress.WebhookURL,
+		"is_active":       walletAddress.IsActive,
+		"allocated_at":    walletAddress.AllocatedAt,
+		"created_at":      walletAddress.CreatedAt,
+		"updated_at":      walletAddress.UpdatedAt,
+		"deleted_at":      walletAddress.DeletedAt,
+		"blockchain_name": blockchain.Name,
+	}, nil
 }
 
 func (service *WalletAddressService) Create(request *request.CreateWalletAddressRequest) (*model.WalletAddress, error) {
@@ -213,15 +257,28 @@ func (service *WalletAddressService) HandleDeposits() error {
 }
 
 // Get Transactions by wallet-address
-func (service *WalletAddressService) GetTransactions(walletAddress *model.WalletAddress) ([]transactionResponse.Response, error) {
-	blockchain, err := service.IBlockchainService.GetById(walletAddress.BlockchainID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get blockchain for wallet address %s: %w", walletAddress.WalletAddress, err)
+func (service *WalletAddressService) GetTransactions(walletAddress map[string]interface{}) ([]transactionResponse.Response, error) {
+	// Type assertions to extract values from the map
+	name, ok := walletAddress["blockchain_name"].(string)
+	if !ok {
+		return nil, fmt.Errorf("invalid or missing 'name' in walletAddress map")
 	}
 
-	txs, err := service.GetTransactionsList(walletAddress.WalletAddress, blockchain)
+	address, ok := walletAddress["wallet_address"].(string)
+	if !ok {
+		return nil, fmt.Errorf("invalid or missing 'wallet_address' in walletAddress map")
+	}
+
+	// Fetch blockchain by ID
+	blockchain, err := service.IBlockchainService.GetByName(name)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get transactions for wallet address %s: %w", walletAddress.WalletAddress, err)
+		return nil, fmt.Errorf("failed to get blockchain for wallet address %s: %w", address, err)
+	}
+
+	// Get transactions list
+	txs, err := service.GetTransactionsList(address, blockchain)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get transactions for wallet address %s: %w", address, err)
 	}
 
 	return txs, nil

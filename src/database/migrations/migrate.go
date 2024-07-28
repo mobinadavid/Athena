@@ -17,7 +17,6 @@ func init() {
 		"blockchain",
 		"wallet-address",
 		"blockchain-explorer",
-		"blockchain-explorer-mappings",
 	}
 
 	for _, service := range services {

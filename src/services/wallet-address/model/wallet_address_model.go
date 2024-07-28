@@ -7,7 +7,6 @@ import (
 )
 
 type WalletAddress struct {
-	gorm.Model
 	ID            uint           `gorm:"primaryKey" json:"id"`
 	UUID          uuid.UUID      `gorm:"default:uuid_generate_v4()" json:"uuid"`
 	Name          string         `gorm:"default:null;uniqueIndex" json:"name"`
