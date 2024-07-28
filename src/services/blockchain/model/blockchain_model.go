@@ -1,7 +1,7 @@
 package model
 
 import (
-	"athena/src/services/wallet-address/model"
+	model2 "athena/src/services/wallet-address/model"
 
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
@@ -10,16 +10,17 @@ import (
 )
 
 type Blockchain struct {
-	ID              uint                  `gorm:"primaryKey" json:"id"`
-	UUID            uuid.UUID             `gorm:"default:uuid_generate_v4()" json:"uuid"`
-	NativeAsset     string                `gorm:"not null" json:"native_asset"`
-	Title           datatypes.JSON        `gorm:"type:json" json:"title"`
-	Name            string                `gorm:"not null;uniqueIndex" json:"name"`
-	IsActive        *bool                 `gorm:"type:bool;default:true" json:"is_active"`
-	CreatedAt       time.Time             `json:"created_at"`
-	UpdatedAt       time.Time             `json:"updated_at"`
-	DeletedAt       gorm.DeletedAt        `gorm:"index" json:"deleted_at"`
-	WalletAddresses []model.WalletAddress `gorm:"foreignKey:BlockchainID" json:"wallet_addresses"`
+	gorm.Model
+	ID              uint                   `gorm:"primaryKey" json:"id"`
+	UUID            uuid.UUID              `gorm:"default:uuid_generate_v4()" json:"uuid"`
+	NativeAsset     string                 `gorm:"not null" json:"native_asset"`
+	Title           datatypes.JSON         `gorm:"type:json" json:"title"`
+	Name            string                 `gorm:"not null;uniqueIndex" json:"name"`
+	IsActive        *bool                  `gorm:"type:bool;default:true" json:"is_active"`
+	CreatedAt       time.Time              `json:"created_at"`
+	UpdatedAt       time.Time              `json:"updated_at"`
+	DeletedAt       gorm.DeletedAt         `gorm:"index" json:"deleted_at"`
+	WalletAddresses []model2.WalletAddress `gorm:"foreignKey:BlockchainID" json:"wallet_addresses"`
 }
 
 // TableName sets the table name of the model

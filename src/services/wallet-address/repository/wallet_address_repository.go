@@ -25,14 +25,15 @@ type WalletAddressRepository struct {
 	IDatabaseHandler *database.Database
 }
 
-func (repository *WalletAddressRepository) GetWalletAddress(blockchainName string, number int) ([]string, error) {
+func (repository *WalletAddressRepository) GetWalletAddress(blockchainName string, count int) ([]string, error) {
 	var walletAddresses []*model.WalletAddress
 	var walletAddressesName []string
 
 	// Query to find active and not allocated wallet addresses for the given blockchain
-	if err := repository.IDatabaseHandler.GetClient().Joins("JOIN blockchains ON blockchains.id = wallet_addresses.blockchain_id").
+	if err := repository.IDatabaseHandler.GetClient().
+		Preload("Blockchain"). // Ensure this matches the actual relationship name in your GORM model
 		Where("blockchains.name = ? AND wallet_addresses.is_active = ? AND wallet_addresses.allocated_at IS NULL", blockchainName, true).
-		Limit(number).
+		Limit(count).
 		Find(&walletAddresses).Error; err != nil {
 		return nil, err
 	}
