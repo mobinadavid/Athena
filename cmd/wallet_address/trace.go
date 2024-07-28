@@ -2,7 +2,7 @@ package wallet_address
 
 import (
 	"athena/src/pkg/vault"
-	"athena/src/services"
+	"athena/src/providers"
 	"github.com/spf13/cobra"
 	"log"
 )
@@ -13,7 +13,7 @@ var traceCmd = &cobra.Command{
 		if err := vault.Init(); err != nil {
 			log.Fatalln(err)
 		}
-		serviceContainer := services.GetContainer()
+		serviceContainer := providers.GetContainer()
 		// Call HandleDeposits method
 		if err := serviceContainer.WalletAddressController.IWalletAddressService.HandleDeposits(); err != nil {
 			log.Fatalf("HandleDeposits failed: %v", err)

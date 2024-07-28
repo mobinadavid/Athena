@@ -1,8 +1,7 @@
 package database
 
 import (
-	"athena/src/services/blockchain-explorer/seeder"
-	seeder2 "athena/src/services/blockchain/seeder"
+	seeder2 "athena/src/database/seeders"
 	"github.com/spf13/cobra"
 	"log"
 )
@@ -18,7 +17,7 @@ var seedRunCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Println("Running seeders")
 		seeder2.SeedBlockchain()
-		seeder.SeedExplorer()
+		seeder2.SeedExplorer()
 		log.Println("Database has seeded successfully!")
 	},
 }
