@@ -87,7 +87,7 @@ func (repository *BlockchainExplorerRepository) Delete(uuid *uuid.UUID) error {
 	// Delete associated blockchains
 	if len(blockchainExplorer.Blockchains) > 0 {
 		if err := repository.IDatabaseHandler.GetClient().Model(&blockchainExplorer).Association("Blockchains").Clear(); err != nil {
-			return fmt.Errorf("failed to clear categories association for blockchainExplorer: %s", err)
+			return fmt.Errorf("failed to clear blockchain association for blockchainExplorer: %s", err)
 		}
 	}
 

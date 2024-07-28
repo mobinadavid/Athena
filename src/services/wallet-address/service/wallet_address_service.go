@@ -128,58 +128,51 @@ func (service *WalletAddressService) Update(uuid *uuid.UUID, request *request.Cr
 	})
 }
 
-// GetTransactions This method will connect to related blockchain explorer and returns the list of transactions for requested wallet address.
+// GetTransactionsList fetches transactions from the specified blockchain explorer
 func (service *WalletAddressService) GetTransactionsList(walletAddress string, blockchain *blockchainModel.Blockchain) ([]transactionResponse.Response, error) {
 	explorer, err := service.IBlockchainExplorerService.GetExplorerByBlockchainId(blockchain.ID)
 	if err != nil {
-		return nil, fmt.Errorf("error finding explorer: %w", err)
+		return nil, fmt.Errorf("error finding explorer for blockchain %s: %w", blockchain.NativeAsset, err)
 	}
+
+	var transactions []transactionResponse.Response
 
 	switch blockchain.NativeAsset {
 	case "ETH":
-
 		etherScanApi, err := etherscan.NewEtherscan(explorer.BaseUrl)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error initializing Etherscan API: %w", err)
 		}
-
-		ethTransactions, err := etherScanApi.FetchEthTransaction(walletAddress)
+		transactions, err = etherScanApi.FetchEthTransaction(walletAddress)
 		if err != nil {
-			return nil, fmt.Errorf("error fetching Binanace transactions: %w", err)
+			return nil, fmt.Errorf("error fetching Ethereum transactions: %w", err)
 		}
-
-		return ethTransactions, nil
 
 	case "TRX":
-
 		tronScanApi, err := tronscan.NewTronscan(explorer.BaseUrl)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error initializing TronScan API: %w", err)
 		}
-
-		trxTransactions, err := tronScanApi.FetchTronTransactions(walletAddress)
+		transactions, err = tronScanApi.FetchTronTransactions(walletAddress)
 		if err != nil {
-			return nil, fmt.Errorf("error fetching Binanace transactions: %w", err)
+			return nil, fmt.Errorf("error fetching Tron transactions: %w", err)
 		}
-
-		return trxTransactions, nil
 
 	case "BSC":
-
 		bscScanApi, err := bscscan.NewBscscan(explorer.BaseUrl)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error initializing BscScan API: %w", err)
 		}
-
-		bscTransactions, err := bscScanApi.FetchBscTransaction(walletAddress)
+		transactions, err = bscScanApi.FetchBscTransaction(walletAddress)
 		if err != nil {
-			return nil, fmt.Errorf("error fetching Binanace transactions: %w", err)
+			return nil, fmt.Errorf("error fetching BSC transactions: %w", err)
 		}
 
-		return bscTransactions, nil
+	default:
+		return nil, fmt.Errorf("unsupported blockchain: %s", blockchain.NativeAsset)
 	}
 
-	return nil, nil
+	return transactions, nil
 }
 
 func (service *WalletAddressService) HandleDeposits() error {

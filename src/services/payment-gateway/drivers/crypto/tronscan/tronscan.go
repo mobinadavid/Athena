@@ -67,6 +67,7 @@ func (t *Tronscan) FetchTronTransactions(walletAddress string) ([]transaction_re
 			To:          fmt.Sprintf("%v", tx["toAddress"]),
 			Gas:         fmt.Sprintf("%v", tx["cost"].(map[string]interface{})["energy_usage"]),
 			Amount:      fmt.Sprintf("%v", tx["amount"]),
+			Fee:         fmt.Sprintf("%v", tx["fee"]),
 			IsConfirmed: tx["confirmed"].(bool),
 			BlockChain:  "TRX",
 		}
