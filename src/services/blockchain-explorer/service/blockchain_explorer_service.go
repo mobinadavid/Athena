@@ -83,7 +83,7 @@ func (service *BlockchainExplorerService) Create(request *request.CreateBlockcha
 }
 
 func (service *BlockchainExplorerService) Delete(uuid *uuid.UUID) error {
-	return service.IBlockchainService.Delete(uuid)
+	return service.IBlockchainExplorerRepository.Delete(uuid)
 }
 
 func (service *BlockchainExplorerService) Update(uuid *uuid.UUID, request *request.CreateBlockchainExplorerRequest) (*model.BlockchainExplorer, error) {
