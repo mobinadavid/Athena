@@ -16,8 +16,8 @@ type WalletAddressController struct {
 	IWalletAddressService services.IWalletAddressService
 }
 
-func (controller *WalletAddressController) GetWalletAddress(c *gin.Context) {
-	var req requests.GetWalletAddress
+func (controller *WalletAddressController) AllocateWalletAddresses(c *gin.Context) {
+	var req requests.AllocateWalletAddress
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.Api(c).Send()
 		return
@@ -32,7 +32,7 @@ func (controller *WalletAddressController) GetWalletAddress(c *gin.Context) {
 		return
 	}
 
-	walletAddress, err := controller.IWalletAddressService.GetWalletAddress(&req)
+	walletAddress, err := controller.IWalletAddressService.AllocateWalletAddresses(&req)
 	if err != nil {
 		response.Api(c).
 			SetMessage(err.Error()).

@@ -13,7 +13,6 @@ type IBlockchainRepository interface {
 	GetList() ([]*models.Blockchain, error)
 	GetByUuid(uuid *uuid.UUID) (*models.Blockchain, error)
 	GetByName(name string) (*models.Blockchain, error)
-	GetById(uint uint) (*models.Blockchain, error)
 	Create(blockchain *models.Blockchain) (*models.Blockchain, error)
 	GetCount() (int64, error)
 	Delete(uuid *uuid.UUID) error
@@ -36,17 +35,6 @@ func (repository *BlockchainRepository) GetList() ([]*models.Blockchain, error) 
 
 	return blockchain, nil
 
-}
-
-func (repository *BlockchainRepository) GetById(id uint) (*models.Blockchain, error) {
-	var blockchain models.Blockchain
-
-	result := repository.IDatabaseHandler.GetClient().First(&blockchain, "id = ?", id)
-	if result.Error != nil && errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("blockchain get by id failed: %s", result.Error.Error())
-	}
-
-	return &blockchain, nil
 }
 
 func (repository *BlockchainRepository) GetByUuid(uuid *uuid.UUID) (*models.Blockchain, error) {

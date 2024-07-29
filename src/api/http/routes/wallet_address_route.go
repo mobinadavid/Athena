@@ -9,10 +9,10 @@ import (
 func WalletAddressRouter(router *gin.RouterGroup) {
 	serviceContainer := providers.GetContainer()
 
-	walletAddress := router.Group("wallet_address")
+	walletAddress := router.Group("wallet-address")
 
 	walletAddress.GET("", serviceContainer.WalletAddressController.GetList)
-	walletAddress.GET("walletAddresses", serviceContainer.WalletAddressController.GetWalletAddress)
+	walletAddress.POST("allocate", serviceContainer.WalletAddressController.AllocateWalletAddresses)
 	walletAddress.GET("transactions/:uuid", serviceContainer.WalletAddressController.GetTransactions)
 	walletAddress.GET(":uuid", middlewares.PaginationMiddleware, serviceContainer.WalletAddressController.GetByUuid)
 	walletAddress.DELETE(":uuid", middlewares.PaginationMiddleware, serviceContainer.WalletAddressController.Delete)

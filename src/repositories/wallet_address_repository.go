@@ -18,16 +18,26 @@ type IWalletAddressRepository interface {
 	Delete(uuid *uuid.UUID) error
 	Update(uuid *uuid.UUID, req *models.WalletAddress) (*models.WalletAddress, error)
 	GetActiveList() ([]*models.WalletAddress, error)
-	GetWalletAddress(blockchainName string, number int) ([]string, error)
+	GetUnallocatedWalletAddress(count int) ([]*models.WalletAddress, error)
+	UpdateWalletAddressToAllocated(walletAddresses []*models.WalletAddress) error
 }
 
 type WalletAddressRepository struct {
 	IDatabaseHandler *database.Database
 }
 
-func (repository *WalletAddressRepository) GetWalletAddress(blockchainName string, count int) ([]string, error) {
+func (repository *WalletAddressRepository) UpdateWalletAddressToAllocated(walletAddresses []*models.WalletAddress) error {
+	for _, walletAddress := range walletAddresses {
+		walletAddress.AllocatedAt = time.Now()
+		if err := repository.IDatabaseHandler.GetClient().Save(walletAddress).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (repository *WalletAddressRepository) GetUnallocatedWalletAddress(count int) ([]*models.WalletAddress, error) {
 	var walletAddresses []*models.WalletAddress
-	var walletAddressesName []string
 
 	if err := repository.IDatabaseHandler.GetClient().
 		Preload("Blockchain").
@@ -37,40 +47,14 @@ func (repository *WalletAddressRepository) GetWalletAddress(blockchainName strin
 		return nil, err
 	}
 
-	// Filter wallet addresses based on the blockchain name
-	var filteredWalletAddresses []*models.WalletAddress
-	for _, walletAddress := range walletAddresses {
-		if walletAddress.Blockchain.Name == blockchainName {
-			filteredWalletAddresses = append(filteredWalletAddresses, walletAddress)
-		}
-	}
-
-	// Check if any addresses are found
-	if len(filteredWalletAddresses) == 0 {
-		return nil, errors.New("no wallet addresses found")
-	}
-
-	// Update the found wallet addresses to allocated
-	for _, walletAddress := range filteredWalletAddresses {
-		walletAddress.AllocatedAt = time.Now()
-		if err := repository.IDatabaseHandler.GetClient().Save(walletAddress).Error; err != nil {
-			return nil, err
-		}
-	}
-
-	// Collect wallet address names
-	for _, walletAddress := range filteredWalletAddresses {
-		walletAddressesName = append(walletAddressesName, walletAddress.WalletAddress)
-	}
-
-	return walletAddressesName, nil
+	return walletAddresses, nil
 }
 
 func (repository *WalletAddressRepository) GetActiveList() ([]*models.WalletAddress, error) {
 	var walletAddress []*models.WalletAddress
 
 	result := repository.IDatabaseHandler.GetClient()
-	result = result.Where("is_active = ?", true).Find(&walletAddress)
+	result = result.Where("is_active = ?", true).Preload("Blockchain").Find(&walletAddress)
 
 	if result.Error != nil {
 		return nil, fmt.Errorf("walletAddress get list failed: %s", result.Error.Error())

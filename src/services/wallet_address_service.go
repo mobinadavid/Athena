@@ -23,7 +23,7 @@ type IWalletAddressService interface {
 	HandleDeposits() error
 	GetActiveList() (*scopes.PaginateModel, error)
 	GetTransactions(address *models.WalletAddress) ([]models.Response, error)
-	GetWalletAddress(request *requests.GetWalletAddress) ([]string, error)
+	AllocateWalletAddresses(request *requests.AllocateWalletAddress) ([]string, error)
 }
 
 type WalletAddressService struct {
@@ -51,17 +51,42 @@ func (service *WalletAddressService) GetList() (*scopes.PaginateModel, error) {
 
 }
 
-func (service *WalletAddressService) GetWalletAddress(request *requests.GetWalletAddress) ([]string, error) {
+func (service *WalletAddressService) AllocateWalletAddresses(request *requests.AllocateWalletAddress) ([]string, error) {
 	if request.Count <= 0 {
 		return nil, errors.New("invalid number of wallet address requested")
 	}
 
-	walletAddresses, err := service.IWalletAddressRepository.GetWalletAddress(request.Blockchain, request.Count)
+	walletAddresses, err := service.IWalletAddressRepository.GetUnallocatedWalletAddress(request.Count)
 	if err != nil {
 		return nil, err
 	}
 
-	return walletAddresses, nil
+	// Filter wallet addresses based on the blockchain name
+	var filteredWalletAddresses []*models.WalletAddress
+	for _, walletAddress := range walletAddresses {
+		if walletAddress.Blockchain.Name == request.Blockchain {
+			filteredWalletAddresses = append(filteredWalletAddresses, walletAddress)
+		}
+	}
+
+	// Check if any addresses are found
+	if len(filteredWalletAddresses) == 0 {
+		return nil, errors.New("no wallet addresses found")
+	} else {
+		//Update to allocated
+		err := service.IWalletAddressRepository.UpdateWalletAddressToAllocated(filteredWalletAddresses)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Collect wallet address names
+	var walletAddressesName []string
+	for _, walletAddress := range filteredWalletAddresses {
+		walletAddressesName = append(walletAddressesName, walletAddress.WalletAddress)
+	}
+
+	return walletAddressesName, nil
 }
 
 func (service *WalletAddressService) GetActiveList() (*scopes.PaginateModel, error) {
@@ -184,16 +209,8 @@ func (service *WalletAddressService) HandleDeposits() error {
 	walletAddresses := paginatedModel.Items.(*[]*models.WalletAddress)
 
 	for _, walletAddress := range *walletAddresses {
-
-		blockchain, err := service.IBlockchainService.GetById(walletAddress.BlockchainID)
+		txs, err := service.GetTransactionsList(walletAddress.WalletAddress, walletAddress.Blockchain)
 		if err != nil {
-
-			return fmt.Errorf("failed to get blockchain for wallet address %s: %w", walletAddress.WalletAddress, err)
-		}
-
-		txs, err := service.GetTransactionsList(walletAddress.WalletAddress, blockchain)
-		if err != nil {
-
 			return fmt.Errorf("failed to get transactions for wallet address %s: %w", walletAddress.WalletAddress, err)
 		}
 
@@ -214,13 +231,7 @@ func (service *WalletAddressService) HandleDeposits() error {
 
 // Get Transactions by wallet-address
 func (service *WalletAddressService) GetTransactions(walletAddress *models.WalletAddress) ([]models.Response, error) {
-	blockchain, err := service.IBlockchainService.GetById(walletAddress.BlockchainID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get blockchain for wallet address %s: %w", walletAddress, err)
-	}
-
-	// Get transactions list
-	txs, err := service.GetTransactionsList(walletAddress.WalletAddress, blockchain)
+	txs, err := service.GetTransactionsList(walletAddress.WalletAddress, walletAddress.Blockchain)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get transactions for wallet address %s: %w", walletAddress, err)
 	}

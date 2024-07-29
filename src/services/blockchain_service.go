@@ -14,16 +14,11 @@ type IBlockChainService interface {
 	GetByUuid(uuid *uuid.UUID) (*models.Blockchain, error)
 	Delete(uuid *uuid.UUID) error
 	Update(uuid *uuid.UUID, request *requests.CreateBlockchainRequest) (*models.Blockchain, error)
-	GetById(id uint) (*models.Blockchain, error)
 	GetByName(name string) (*models.Blockchain, error)
 }
 
 type BlockchainService struct {
 	IBlockchainRepository repositories.IBlockchainRepository
-}
-
-func (service *BlockchainService) GetById(id uint) (*models.Blockchain, error) {
-	return service.IBlockchainRepository.GetById(id)
 }
 
 func (service *BlockchainService) GetList() (*scopes.PaginateModel, error) {

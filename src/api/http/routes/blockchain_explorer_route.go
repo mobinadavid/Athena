@@ -9,7 +9,7 @@ import (
 func BlockchainExplorerRouter(router *gin.RouterGroup) {
 	serviceContainer := providers.GetContainer()
 
-	blockchain := router.Group("blockchain_explorer")
+	blockchain := router.Group("blockchain-explorer")
 
 	blockchain.GET("", serviceContainer.BlockchainExplorerController.GetList)
 	blockchain.GET(":uuid", middlewares.PaginationMiddleware, serviceContainer.BlockchainExplorerController.GetByUuid)
