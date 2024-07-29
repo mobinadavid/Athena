@@ -17,27 +17,28 @@ func SeedExplorer() {
 
 	// Seed the BlockchainExplorer records and associate them with the Blockchain records
 	isActive := true
+	isDefault := true
 
 	explorers := []*blockchainModel.BlockchainExplorer{
 		{
 			IsActive:    &isActive,
 			BaseUrl:     "https://apilist.tronscanapi.com",
 			Name:        "tronscan",
-			IsDefault:   true,
+			IsDefault:   &isDefault,
 			Blockchains: []*blockchainModel.Blockchain{&tronBlockchain},
 		},
 		{
 			IsActive:    &isActive,
 			BaseUrl:     "https://api.etherscan.io",
 			Name:        "etherscan",
-			IsDefault:   true,
+			IsDefault:   &isDefault,
 			Blockchains: []*blockchainModel.Blockchain{&ethereumBlockchain},
 		},
 		{
 			IsActive:    &isActive,
 			BaseUrl:     "https://api.bscscan.com",
 			Name:        "bscscan",
-			IsDefault:   true,
+			IsDefault:   &isDefault,
 			Blockchains: []*blockchainModel.Blockchain{&binanceBlockchain},
 		},
 	}

@@ -3,8 +3,8 @@ package etherscan
 import (
 	"athena/src/config"
 	"athena/src/models"
+	"athena/src/pkg/payment-gateway/drivers/crypto/etherscan/model"
 	"athena/src/pkg/vault"
-	"athena/src/services/payment-gateway/drivers/crypto/etherscan/model"
 	"context"
 	"encoding/json"
 	"fmt"

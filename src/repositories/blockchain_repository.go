@@ -27,7 +27,7 @@ type BlockchainRepository struct {
 func (repository *BlockchainRepository) GetList() ([]*models.Blockchain, error) {
 	var blockchain []*models.Blockchain
 
-	result := repository.IDatabaseHandler.GetClient().Preload("WalletAddresses").Model(&models.Blockchain{}).Scopes()
+	result := repository.IDatabaseHandler.GetClient().Preload("WalletAddresses").Preload("BlockchainExplorers").Model(&models.Blockchain{}).Scopes()
 	result = result.Find(&blockchain)
 
 	if result.Error != nil {
@@ -52,7 +52,7 @@ func (repository *BlockchainRepository) GetById(id uint) (*models.Blockchain, er
 func (repository *BlockchainRepository) GetByUuid(uuid *uuid.UUID) (*models.Blockchain, error) {
 	var blockchain models.Blockchain
 
-	result := repository.IDatabaseHandler.GetClient().Preload("WalletAddresses").First(&blockchain, "uuid = ?", uuid)
+	result := repository.IDatabaseHandler.GetClient().Preload("WalletAddresses").Preload("BlockchainExplorers").First(&blockchain, "uuid = ?", uuid)
 	if result.Error != nil && errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("blockchain get by uuid failed: %s", result.Error.Error())
 	}

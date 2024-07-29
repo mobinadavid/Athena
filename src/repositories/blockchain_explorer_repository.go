@@ -16,7 +16,7 @@ type IBlockchainExplorerRepository interface {
 	GetCount() (int64, error)
 	Delete(uuid *uuid.UUID) error
 	Update(uuid *uuid.UUID, req *models.BlockchainExplorer) (*models.BlockchainExplorer, error)
-	GetExplorerByBlockchainID(blockchainID uint) (*models.BlockchainExplorer, error)
+	GetExplorerByBlockchain(blockchain *models.Blockchain) (*models.BlockchainExplorer, error)
 }
 
 type BlockchainExplorerRepository struct {
@@ -124,14 +124,28 @@ func (repository *BlockchainExplorerRepository) Update(uuid *uuid.UUID, blockcha
 	return &existing, nil
 }
 
-func (repository *BlockchainExplorerRepository) GetExplorerByBlockchainID(blockchainID uint) (*models.BlockchainExplorer, error) {
-	var explorer models.BlockchainExplorer
+func (repository *BlockchainExplorerRepository) GetExplorerByBlockchain(blockchain *models.Blockchain) (*models.BlockchainExplorer, error) {
+	var explorers []models.BlockchainExplorer
 
-	result := repository.IDatabaseHandler.GetClient().Joins("JOIN blockchain_explorer_mappings ON blockchain_explorer_mappings.blockchain_explorer_id = blockchain_explorers.id").Where("blockchain_explorer_mappings.blockchain_id = ? AND blockchain_explorers.is_active = ? AND blockchain_explorers.is_default = ?", blockchainID, true, true).First(&explorer)
+	// Preload blockchains and apply conditions
+	result := repository.IDatabaseHandler.GetClient().
+		Preload("Blockchains").
+		Where("blockchain_explorers.is_active = ? AND blockchain_explorers.is_default = ?", true, true).
+		Find(&explorers)
+
 	if result.Error != nil {
-		return nil, fmt.Errorf("failed to get active default explorer for blockchain ID %d: %w", blockchainID, result.Error)
+		return nil, fmt.Errorf("failed to get active default explorer: %w", result.Error)
 	}
 
-	return &explorer, nil
+	// Filter explorers based on the blockchain ID
+	for _, explorer := range explorers {
+		for _, b := range explorer.Blockchains {
+			if b.ID == blockchain.ID {
+				return &explorer, nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("no active default explorer found for blockchain ID %d", blockchain.ID)
 
 }

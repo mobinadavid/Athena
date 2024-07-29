@@ -3,8 +3,8 @@ package bscscan
 import (
 	"athena/src/config"
 	transaction_response "athena/src/models"
+	"athena/src/pkg/payment-gateway/drivers/crypto/bscscan/model"
 	"athena/src/pkg/vault"
-	"athena/src/services/payment-gateway/drivers/crypto/bscscan/model"
 	"context"
 	"encoding/json"
 	"fmt"

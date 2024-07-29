@@ -2,7 +2,7 @@ package repositories
 
 import (
 	"athena/src/database"
-	blockchain_model "athena/src/models"
+	"athena/src/models"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -11,13 +11,13 @@ import (
 )
 
 type IWalletAddressRepository interface {
-	GetList() ([]*blockchain_model.WalletAddress, error)
-	GetByUuid(uuid *uuid.UUID) (*blockchain_model.WalletAddress, error)
-	Create(blockchain *blockchain_model.WalletAddress) (*blockchain_model.WalletAddress, error)
+	GetList() ([]*models.WalletAddress, error)
+	GetByUuid(uuid *uuid.UUID) (*models.WalletAddress, error)
+	Create(blockchain *models.WalletAddress) (*models.WalletAddress, error)
 	GetCount() (int64, error)
 	Delete(uuid *uuid.UUID) error
-	Update(uuid *uuid.UUID, req *blockchain_model.WalletAddress) (*blockchain_model.WalletAddress, error)
-	GetActiveList() ([]*blockchain_model.WalletAddress, error)
+	Update(uuid *uuid.UUID, req *models.WalletAddress) (*models.WalletAddress, error)
+	GetActiveList() ([]*models.WalletAddress, error)
 	GetWalletAddress(blockchainName string, number int) ([]string, error)
 }
 
@@ -26,42 +26,48 @@ type WalletAddressRepository struct {
 }
 
 func (repository *WalletAddressRepository) GetWalletAddress(blockchainName string, count int) ([]string, error) {
-	var blockchain blockchain_model.Blockchain
+	var walletAddresses []*models.WalletAddress
 	var walletAddressesName []string
 
-	// First, find the blockchain by name and preload related wallet addresses
 	if err := repository.IDatabaseHandler.GetClient().
-		Preload("WalletAddresses", func(db *gorm.DB) *gorm.DB {
-			return db.Where("is_active = ? AND allocated_at IS NULL", true).Limit(count)
-		}).
-		Where("name = ?", blockchainName).
-		First(&blockchain).Error; err != nil {
+		Preload("Blockchain").
+		Where("wallet_addresses.is_active = ? AND wallet_addresses.allocated_at IS NULL", true).
+		Limit(count).
+		Find(&walletAddresses).Error; err != nil {
 		return nil, err
 	}
 
-	// If no wallet addresses are found, return an error
-	if len(blockchain.WalletAddresses) == 0 {
+	// Filter wallet addresses based on the blockchain name
+	var filteredWalletAddresses []*models.WalletAddress
+	for _, walletAddress := range walletAddresses {
+		if walletAddress.Blockchain.Name == blockchainName {
+			filteredWalletAddresses = append(filteredWalletAddresses, walletAddress)
+		}
+	}
+
+	// Check if any addresses are found
+	if len(filteredWalletAddresses) == 0 {
 		return nil, errors.New("no wallet addresses found")
 	}
 
 	// Update the found wallet addresses to allocated
-	for _, walletAddress := range blockchain.WalletAddresses {
+	for _, walletAddress := range filteredWalletAddresses {
 		walletAddress.AllocatedAt = time.Now()
-		if err := repository.IDatabaseHandler.GetClient().Save(&walletAddress).Error; err != nil {
+		if err := repository.IDatabaseHandler.GetClient().Save(walletAddress).Error; err != nil {
 			return nil, err
 		}
 	}
 
-	// Collect wallet addresses for return
-	for _, walletAddress := range blockchain.WalletAddresses {
+	// Collect wallet address names
+	for _, walletAddress := range filteredWalletAddresses {
 		walletAddressesName = append(walletAddressesName, walletAddress.WalletAddress)
 	}
 
 	return walletAddressesName, nil
 }
 
-func (repository *WalletAddressRepository) GetActiveList() ([]*blockchain_model.WalletAddress, error) {
-	var walletAddress []*blockchain_model.WalletAddress
+func (repository *WalletAddressRepository) GetActiveList() ([]*models.WalletAddress, error) {
+	var walletAddress []*models.WalletAddress
 
 	result := repository.IDatabaseHandler.GetClient()
 	result = result.Where("is_active = ?", true).Find(&walletAddress)
@@ -73,11 +79,11 @@ func (repository *WalletAddressRepository) GetActiveList() ([]*blockchain_model.
 	return walletAddress, nil
 }
 
-func (repository *WalletAddressRepository) GetList() ([]*blockchain_model.WalletAddress, error) {
-	var walletAddress []*blockchain_model.WalletAddress
+func (repository *WalletAddressRepository) GetList() ([]*models.WalletAddress, error) {
+	var walletAddress []*models.WalletAddress
 
 	result := repository.IDatabaseHandler.GetClient()
-	result = result.Find(&walletAddress)
+	result = result.Preload("Blockchain").Find(&walletAddress)
 
 	if result.Error != nil {
 		return nil, fmt.Errorf("walletAddress get list failed: %s", result.Error.Error())
@@ -86,10 +92,10 @@ func (repository *WalletAddressRepository) GetList() ([]*blockchain_model.Wallet
 	return walletAddress, nil
 }
 
-func (repository *WalletAddressRepository) GetByUuid(uuid *uuid.UUID) (*blockchain_model.WalletAddress, error) {
-	var walletAddress blockchain_model.WalletAddress
+func (repository *WalletAddressRepository) GetByUuid(uuid *uuid.UUID) (*models.WalletAddress, error) {
+	var walletAddress models.WalletAddress
 
-	result := repository.IDatabaseHandler.GetClient().First(&walletAddress, "uuid = ?", uuid)
+	result := repository.IDatabaseHandler.GetClient().Preload("Blockchain").First(&walletAddress, "uuid = ?", uuid)
 	if result.Error != nil && errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("walletAddress get by uuid failed: %s", result.Error.Error())
 	}
@@ -97,7 +103,7 @@ func (repository *WalletAddressRepository) GetByUuid(uuid *uuid.UUID) (*blockcha
 	return &walletAddress, nil
 }
 
-func (repository *WalletAddressRepository) Create(walletAddress *blockchain_model.WalletAddress) (*blockchain_model.WalletAddress, error) {
+func (repository *WalletAddressRepository) Create(walletAddress *models.WalletAddress) (*models.WalletAddress, error) {
 	result := repository.IDatabaseHandler.GetClient().Create(&walletAddress)
 	if result.Error != nil {
 		return nil, fmt.Errorf("walletAddress creation failed: %s", result.Error.Error())
@@ -109,7 +115,7 @@ func (repository *WalletAddressRepository) Create(walletAddress *blockchain_mode
 func (repository *WalletAddressRepository) GetCount() (int64, error) {
 	var count int64
 
-	result := repository.IDatabaseHandler.GetClient().Model(&blockchain_model.WalletAddress{}).Count(&count)
+	result := repository.IDatabaseHandler.GetClient().Model(&models.WalletAddress{}).Count(&count)
 
 	if result.Error != nil {
 		return 0, fmt.Errorf("walletAddresses get count failed: %s", result.Error.Error())
@@ -120,9 +126,9 @@ func (repository *WalletAddressRepository) GetCount() (int64, error) {
 }
 
 func (repository *WalletAddressRepository) Delete(uuid *uuid.UUID) error {
-	var walletAddress blockchain_model.WalletAddress
+	var walletAddress models.WalletAddress
 
-	result := repository.IDatabaseHandler.GetClient().First(&walletAddress, "uuid = ?", uuid)
+	result := repository.IDatabaseHandler.GetClient().Preload("Blockchain").First(&walletAddress, "uuid = ?", uuid)
 	if result.Error != nil && errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return fmt.Errorf("walletAddress get by uuid failed: %s", result.Error.Error())
 	}
@@ -132,12 +138,13 @@ func (repository *WalletAddressRepository) Delete(uuid *uuid.UUID) error {
 	}
 
 	return nil
+
 }
 
-func (repository *WalletAddressRepository) Update(uuid *uuid.UUID, req *blockchain_model.WalletAddress) (*blockchain_model.WalletAddress, error) {
-	var walletAddress blockchain_model.WalletAddress
+func (repository *WalletAddressRepository) Update(uuid *uuid.UUID, req *models.WalletAddress) (*models.WalletAddress, error) {
+	var walletAddress models.WalletAddress
 
-	result := repository.IDatabaseHandler.GetClient().First(&walletAddress, "uuid = ?", uuid)
+	result := repository.IDatabaseHandler.GetClient().Preload("Blockchain").First(&walletAddress, "uuid = ?", uuid)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("walletAddress with UUID %s not found", uuid)
@@ -146,9 +153,10 @@ func (repository *WalletAddressRepository) Update(uuid *uuid.UUID, req *blockcha
 		return nil, fmt.Errorf("failed to retrieve walletAddress with UUID %s: %s", uuid, result.Error)
 	}
 
-	if err := repository.IDatabaseHandler.GetClient().Model(&walletAddress).Updates(req).Error; err != nil {
+	if err := repository.IDatabaseHandler.GetClient().Session(&gorm.Session{FullSaveAssociations: true}).Model(&walletAddress).Updates(req).Error; err != nil {
 		return nil, fmt.Errorf("failed to update walletAddress: %s", err)
 	}
 
 	return &walletAddress, nil
+
 }

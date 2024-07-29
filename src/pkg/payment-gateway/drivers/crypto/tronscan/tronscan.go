@@ -3,7 +3,7 @@ package tronscan
 import (
 	"athena/src/config"
 	"athena/src/models"
-	"athena/src/services/payment-gateway/drivers/crypto/tronscan/model"
+	"athena/src/pkg/payment-gateway/drivers/crypto/tronscan/model"
 	"encoding/json"
 	"fmt"
 	"github.com/go-resty/resty/v2"

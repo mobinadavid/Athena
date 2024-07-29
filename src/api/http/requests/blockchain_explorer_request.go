@@ -5,5 +5,5 @@ type CreateBlockchainExplorerRequest struct {
 	Name        string   ` json:"name" validate:""`
 	IsActive    *bool    `json:"is_active" validate:"required,boolean"`
 	Blockchains []string ` json:"blockchains" validate:""`
-	IsDefault   bool     `json:"is_default" validate:"boolean"`
+	IsDefault   *bool    `json:"is_default" validate:"boolean"`
 }
