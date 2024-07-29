@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"athena/src/database"
+	"athena/src/database/scopes"
 	"athena/src/models"
 	"errors"
 	"fmt"
@@ -51,7 +52,7 @@ func (repository *BlockchainRepository) GetByUuid(uuid *uuid.UUID) (*models.Bloc
 func (repository *BlockchainRepository) GetByName(name string) (*models.Blockchain, error) {
 	var blockchain models.Blockchain
 
-	result := repository.IDatabaseHandler.GetClient().Where("is_active = ? ", true).First(&blockchain, "name = ?", name)
+	result := repository.IDatabaseHandler.GetClient().Scopes(scopes.IsActive()).First(&blockchain, "name = ?", name)
 	if result.Error != nil && errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("blockchain get by name failed: %s", result.Error.Error())
 	}

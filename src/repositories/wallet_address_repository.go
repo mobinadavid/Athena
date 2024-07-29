@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"athena/src/database"
+	"athena/src/database/scopes"
 	"athena/src/models"
 	"errors"
 	"fmt"
@@ -39,11 +40,11 @@ func (repository *WalletAddressRepository) UpdateWalletAddressToAllocated(wallet
 func (repository *WalletAddressRepository) GetUnallocatedWalletAddress(count int) ([]*models.WalletAddress, error) {
 	var walletAddresses []*models.WalletAddress
 
-	if err := repository.IDatabaseHandler.GetClient().
-		Preload("Blockchain").
-		Where("wallet_addresses.is_active = ? AND wallet_addresses.allocated_at IS NULL", true).
-		Limit(count).
-		Find(&walletAddresses).Error; err != nil {
+	// Use IsAllocated to filter records
+	db := repository.IDatabaseHandler.GetClient()
+	query := scopes.IsAllocated()(db).Preload("Blockchain").Limit(count)
+
+	if err := query.Find(&walletAddresses).Error; err != nil {
 		return nil, err
 	}
 
@@ -54,7 +55,7 @@ func (repository *WalletAddressRepository) GetActiveList() ([]*models.WalletAddr
 	var walletAddress []*models.WalletAddress
 
 	result := repository.IDatabaseHandler.GetClient()
-	result = result.Where("is_active = ?", true).Preload("Blockchain").Find(&walletAddress)
+	result = result.Scopes(scopes.IsActive()).Preload("Blockchain").Find(&walletAddress)
 
 	if result.Error != nil {
 		return nil, fmt.Errorf("walletAddress get list failed: %s", result.Error.Error())
