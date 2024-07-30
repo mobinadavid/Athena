@@ -1,4 +1,4 @@
-package model
+package models
 
 type EtherScanResponse struct {
 	Status  string                   `json:"status"`

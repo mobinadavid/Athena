@@ -1,9 +1,8 @@
-package etherscan
+package crypto
 
 import (
 	"athena/src/config"
 	"athena/src/models"
-	"athena/src/pkg/payment-gateway/drivers/crypto/etherscan/model"
 	"athena/src/pkg/vault"
 	"context"
 	"encoding/json"
@@ -13,65 +12,62 @@ import (
 	"time"
 )
 
-type Etherscan struct {
+type Bscscan struct {
 	apiClient *resty.Client
 	apiKey    string
 	baseUrl   string
 }
 
-func NewEtherscan(baseUrl string) (*Etherscan, error) {
+func NewBscscan(baseUrl string) (*Bscscan, error) {
 	configs := config.GetInstance()
-	requestTimeout, _ := strconv.Atoi(configs.Get("ETH_REQUEST_TIMEOUT"))
+	requestTimeout, _ := strconv.Atoi(configs.Get("EXPLORER_REQUEST_TIMEOUT"))
 
 	secrets, err := vault.GetInstance().GetVault().KVv2("kv-v2").Get(context.Background(), configs.Get("APP_NAME")+"/blockchain-explorer")
 	if err != nil {
 		return nil, err
 	}
 
-	etherscan := &Etherscan{
+	bscscan := &Bscscan{
 		apiClient: resty.New(),
-		apiKey:    secrets.Data["ethApiKey"].(string),
+		apiKey:    secrets.Data["bscApiKey"].(string),
 		baseUrl:   baseUrl,
 	}
 
-	etherscan.apiClient.
+	bscscan.apiClient.
 		SetHeader("Content-Type", "application/json").
 		SetTimeout(time.Duration(requestTimeout) * time.Second)
 
-	if proxy := configs.Get("ETH_PROXY"); proxy != "" {
-		etherscan.apiClient.SetProxy(proxy)
-	}
-
-	return etherscan, nil
+	return bscscan, nil
 }
 
-func (e *Etherscan) FetchEthTransaction(walletAddress string) ([]models.Response, error) {
-	url := fmt.Sprintf("%s/api?module=account&action=txlist&address=%s&apikey=%s", e.baseUrl, walletAddress, e.apiKey)
+func (b *Bscscan) FetchTransactions(walletAddress string) ([]models.Response, error) {
+	url := fmt.Sprintf("%s/api?module=account&action=txlist&address=%s&apikey=%s", b.baseUrl, walletAddress, b.apiKey)
 
-	resp, err := e.apiClient.R().
+	resp, err := b.apiClient.R().
 		Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("error making request to Etherscan: %w", err)
+		return nil, fmt.Errorf("error making request to Bscscan: %w", err)
 	}
 
 	if resp.StatusCode() != 200 {
 		return nil, fmt.Errorf("API request failed with status %d", resp.StatusCode())
 	}
 
-	var etherScanResponse model.EtherScanResponse
-	err = json.Unmarshal(resp.Body(), &etherScanResponse)
+	var bscScanResponse models.BscScanResponse
+	err = json.Unmarshal(resp.Body(), &bscScanResponse)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshalling response: %w", err)
 	}
 
-	if etherScanResponse.Status != "1" {
-		return nil, fmt.Errorf("API error: %s", etherScanResponse.Message)
+	if bscScanResponse.Status != "1" {
+		return nil, fmt.Errorf("API error: %s", bscScanResponse.Message)
 	}
+
 	// Parse transactions
 
 	var transactions []models.Response
-	for _, tx := range etherScanResponse.Result {
 
+	for _, tx := range bscScanResponse.Result {
 		response := models.Response{
 			BlockNumber:   tx["blockNumber"].(string),
 			Hash:          tx["hash"].(string),
@@ -82,7 +78,7 @@ func (e *Etherscan) FetchEthTransaction(walletAddress string) ([]models.Response
 			GasPrice:      tx["gasPrice"].(string),
 			Confirmations: tx["confirmations"].(string),
 			Amount:        tx["value"].(string),
-			BlockChain:    "ETH",
+			BlockChain:    "BSC",
 		}
 		transactions = append(transactions, response)
 	}

@@ -1,4 +1,4 @@
-package model
+package models
 
 type TronScanResponse struct {
 	Total   int                      `json:"total"`

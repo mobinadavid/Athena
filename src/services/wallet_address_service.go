@@ -2,16 +2,17 @@ package services
 
 import (
 	"athena/src/api/http/requests"
+	"athena/src/config"
 	"athena/src/database/scopes"
 	"athena/src/models"
-	"athena/src/pkg/payment-gateway/drivers/crypto/bscscan"
-	"athena/src/pkg/payment-gateway/drivers/crypto/etherscan"
-	"athena/src/pkg/payment-gateway/drivers/crypto/tronscan"
+	"athena/src/pkg/payment-gateway/drivers/crypto"
 	"athena/src/repositories"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"reflect"
+	"strconv"
+	"time"
 )
 
 type IWalletAddressService interface {
@@ -155,49 +156,37 @@ func (service *WalletAddressService) Update(uuid *uuid.UUID, request *requests.C
 
 // GetTransactionsList fetches transactions from the specified blockchain explorer
 func (service *WalletAddressService) GetTransactionsList(walletAddress string, blockchain *models.Blockchain) ([]models.Response, error) {
-	explorer, err := service.IBlockchainExplorerService.GetExplorerByBlockchain(blockchain)
+	explorerBaseUrl, err := service.IBlockchainExplorerService.GetExplorerByBlockchain(blockchain)
 	if err != nil {
 		return nil, fmt.Errorf("error finding explorer for blockchain %s: %w", blockchain.NativeAsset, err)
 	}
 
-	var transactions []models.Response
-
-	switch blockchain.NativeAsset {
-	case "ETH":
-		etherScanApi, err := etherscan.NewEtherscan(explorer.BaseUrl)
-		if err != nil {
-			return nil, fmt.Errorf("error initializing Etherscan API: %w", err)
-		}
-		transactions, err = etherScanApi.FetchEthTransaction(walletAddress)
-		if err != nil {
-			return nil, fmt.Errorf("error fetching Ethereum transactions: %w", err)
-		}
-
-	case "TRX":
-		tronScanApi, err := tronscan.NewTronscan(explorer.BaseUrl)
-		if err != nil {
-			return nil, fmt.Errorf("error initializing TronScan API: %w", err)
-		}
-		transactions, err = tronScanApi.FetchTronTransactions(walletAddress)
-		if err != nil {
-			return nil, fmt.Errorf("error fetching Tron transactions: %w", err)
-		}
-
-	case "BSC":
-		bscScanApi, err := bscscan.NewBscscan(explorer.BaseUrl)
-		if err != nil {
-			return nil, fmt.Errorf("error initializing BscScan API: %w", err)
-		}
-		transactions, err = bscScanApi.FetchBscTransaction(walletAddress)
-		if err != nil {
-			return nil, fmt.Errorf("error fetching BSC transactions: %w", err)
-		}
-
-	default:
-		return nil, fmt.Errorf("unsupported blockchain: %s", blockchain.NativeAsset)
+	explorerFactory := &crypto.ExplorerFactory{}
+	explorer, err := explorerFactory.CreateExplorer(blockchain, explorerBaseUrl.BaseUrl)
+	if err != nil {
+		return nil, fmt.Errorf("error creating explorer for blockchain %s: %w", blockchain.NativeAsset, err)
 	}
 
-	return transactions, nil
+	maxRetry, _ := strconv.Atoi(config.GetInstance().Get("GET_TRANSACTIONS_MAX_RETRY"))
+	for i := 0; i < maxRetry; i++ {
+		transactions, err := explorer.FetchTransactions(walletAddress)
+		if err == nil {
+			return transactions, nil
+		}
+		fmt.Printf("Attempt %d: Error fetching transactions: %v\n", i+1, err)
+		time.Sleep(1 * time.Second)
+	}
+
+	return nil, fmt.Errorf("error fetching transactions after %d attempts: %w", maxRetry, err)
+}
+
+func (service *WalletAddressService) GetTransactions(walletAddress *models.WalletAddress) ([]models.Response, error) {
+	txs, err := service.GetTransactionsList(walletAddress.WalletAddress, walletAddress.Blockchain)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get transactions for wallet address %s: %w", walletAddress, err)
+	}
+
+	return txs, nil
 }
 
 func (service *WalletAddressService) HandleDeposits() error {
@@ -227,14 +216,4 @@ func (service *WalletAddressService) HandleDeposits() error {
 		}
 	}
 	return nil
-}
-
-// Get Transactions by wallet-address
-func (service *WalletAddressService) GetTransactions(walletAddress *models.WalletAddress) ([]models.Response, error) {
-	txs, err := service.GetTransactionsList(walletAddress.WalletAddress, walletAddress.Blockchain)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get transactions for wallet address %s: %w", walletAddress, err)
-	}
-
-	return txs, nil
 }

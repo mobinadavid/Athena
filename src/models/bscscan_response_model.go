@@ -1,4 +1,4 @@
-package model
+package models
 
 type BscScanResponse struct {
 	Status  string                   `json:"status"`

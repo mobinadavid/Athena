@@ -1,9 +1,8 @@
-package tronscan
+package crypto
 
 import (
 	"athena/src/config"
 	"athena/src/models"
-	"athena/src/pkg/payment-gateway/drivers/crypto/tronscan/model"
 	"encoding/json"
 	"fmt"
 	"github.com/go-resty/resty/v2"
@@ -18,7 +17,7 @@ type Tronscan struct {
 
 func NewTronscan(baseUrl string) (*Tronscan, error) {
 	configs := config.GetInstance()
-	requestTimeout, _ := strconv.Atoi(configs.Get("TRON_REQUEST_TIMEOUT"))
+	requestTimeout, _ := strconv.Atoi(configs.Get("EXPLORER_REQUEST_TIMEOUT"))
 
 	tronscan := &Tronscan{
 		apiClient: resty.New(),
@@ -29,14 +28,10 @@ func NewTronscan(baseUrl string) (*Tronscan, error) {
 		SetHeader("Content-Type", "application/json").
 		SetTimeout(time.Duration(requestTimeout) * time.Second)
 
-	if proxy := configs.Get("TRON_PROXY"); proxy != "" {
-		tronscan.apiClient.SetProxy(proxy)
-	}
-
 	return tronscan, nil
 }
 
-func (t *Tronscan) FetchTronTransactions(walletAddress string) ([]models.Response, error) {
+func (t *Tronscan) FetchTransactions(walletAddress string) ([]models.Response, error) {
 	url := fmt.Sprintf("%s/api/transaction?limit=20&start=0&address=%s", t.baseUrl, walletAddress)
 
 	resp, err := t.apiClient.R().
@@ -50,7 +45,7 @@ func (t *Tronscan) FetchTronTransactions(walletAddress string) ([]models.Respons
 		return nil, fmt.Errorf("API request failed with status %d", resp.StatusCode())
 	}
 
-	var tronScanResponse model.TronScanResponse
+	var tronScanResponse models.TronScanResponse
 	err = json.Unmarshal(resp.Body(), &tronScanResponse)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshalling response: %w", err)
