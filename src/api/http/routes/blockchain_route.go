@@ -12,10 +12,10 @@ func BlockchainRouter(router *gin.RouterGroup) {
 
 	blockchain := router.Group("blockchain")
 
-	blockchain.GET("", serviceContainer.BlockchainController.GetList)
-	blockchain.GET(":uuid", middlewares.PaginationMiddleware, serviceContainer.BlockchainController.GetByUuid)
-	blockchain.DELETE(":uuid", middlewares.PaginationMiddleware, serviceContainer.BlockchainController.Delete)
-	blockchain.PUT(":uuid", middlewares.PaginationMiddleware, serviceContainer.BlockchainController.Update)
-	blockchain.POST("", middlewares.PaginationMiddleware, serviceContainer.BlockchainController.Create)
+	blockchain.GET("", middlewares.PaginationMiddleware, serviceContainer.BlockchainController.GetList)
+	blockchain.GET(":uuid", serviceContainer.BlockchainController.GetByUuid)
+	blockchain.DELETE(":uuid", serviceContainer.BlockchainController.Delete)
+	blockchain.PUT(":uuid", serviceContainer.BlockchainController.Update)
+	blockchain.POST("", serviceContainer.BlockchainController.Create)
 
 }

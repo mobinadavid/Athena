@@ -11,12 +11,12 @@ func WalletAddressRouter(router *gin.RouterGroup) {
 
 	walletAddress := router.Group("wallet-address")
 
-	walletAddress.GET("", serviceContainer.WalletAddressController.GetList)
+	walletAddress.GET("", middlewares.PaginationMiddleware, serviceContainer.WalletAddressController.GetList)
 	walletAddress.POST("allocate", serviceContainer.WalletAddressController.AllocateWalletAddresses)
-	walletAddress.GET("transactions/:uuid", serviceContainer.WalletAddressController.GetTransactions)
-	walletAddress.GET(":uuid", middlewares.PaginationMiddleware, serviceContainer.WalletAddressController.GetByUuid)
-	walletAddress.DELETE(":uuid", middlewares.PaginationMiddleware, serviceContainer.WalletAddressController.Delete)
-	walletAddress.PUT(":uuid", middlewares.PaginationMiddleware, serviceContainer.WalletAddressController.Update)
-	walletAddress.POST("", middlewares.PaginationMiddleware, serviceContainer.WalletAddressController.Create)
+	walletAddress.GET("transactions/:uuid", middlewares.PaginationMiddleware, serviceContainer.WalletAddressController.GetTransactions)
+	walletAddress.GET(":uuid", serviceContainer.WalletAddressController.GetByUuid)
+	walletAddress.DELETE(":uuid", serviceContainer.WalletAddressController.Delete)
+	walletAddress.PUT(":uuid", serviceContainer.WalletAddressController.Update)
+	walletAddress.POST("", serviceContainer.WalletAddressController.Create)
 
 }
