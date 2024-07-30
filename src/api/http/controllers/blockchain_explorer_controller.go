@@ -19,7 +19,9 @@ type BlockchainExplorerController struct {
 func (controller *BlockchainExplorerController) GetList(c *gin.Context) {
 	var blockchainExplorer *scopes.PaginateModel
 
-	blockchainExplorer, err := controller.IBlockchainExplorerService.GetList()
+	blockchainExplorer, err := controller.IBlockchainExplorerService.GetList(
+		uint(c.GetInt("page")),
+		uint(c.GetInt("limit")))
 
 	if err != nil {
 		response.Api(c).SetStatusCode(http.StatusNotFound).Send()

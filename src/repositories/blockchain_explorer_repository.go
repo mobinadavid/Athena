@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"athena/src/database"
+	"athena/src/database/scopes"
 	"athena/src/models"
 	"errors"
 	"fmt"
@@ -10,7 +11,7 @@ import (
 )
 
 type IBlockchainExplorerRepository interface {
-	GetList() ([]*models.BlockchainExplorer, error)
+	GetList(page, limit uint) ([]*models.BlockchainExplorer, error)
 	GetByUuid(uuid *uuid.UUID) (*models.BlockchainExplorer, error)
 	Create(explorer *models.BlockchainExplorer) (*models.BlockchainExplorer, error)
 	GetCount() (int64, error)
@@ -32,12 +33,10 @@ func (repository *BlockchainExplorerRepository) Create(blockchainExplorer *model
 	return blockchainExplorer, nil
 }
 
-func (repository *BlockchainExplorerRepository) GetList() ([]*models.BlockchainExplorer, error) {
+func (repository *BlockchainExplorerRepository) GetList(page, limit uint) ([]*models.BlockchainExplorer, error) {
 	var blockchainExplorers []*models.BlockchainExplorer
 	result := repository.IDatabaseHandler.GetClient().Preload("Blockchains").Model(&models.BlockchainExplorer{})
-
-	result = result.Scopes()
-
+	result = result.Scopes(scopes.PaginateScope(page, limit))
 	result = result.Find(&blockchainExplorers)
 
 	if result.Error != nil {

@@ -11,7 +11,7 @@ import (
 )
 
 type IBlockchainRepository interface {
-	GetList() ([]*models.Blockchain, error)
+	GetList(page, limit uint) ([]*models.Blockchain, error)
 	GetByUuid(uuid *uuid.UUID) (*models.Blockchain, error)
 	GetByName(name string) (*models.Blockchain, error)
 	Create(blockchain *models.Blockchain) (*models.Blockchain, error)
@@ -24,10 +24,10 @@ type BlockchainRepository struct {
 	IDatabaseHandler *database.Database
 }
 
-func (repository *BlockchainRepository) GetList() ([]*models.Blockchain, error) {
+func (repository *BlockchainRepository) GetList(page, limit uint) ([]*models.Blockchain, error) {
 	var blockchain []*models.Blockchain
 
-	result := repository.IDatabaseHandler.GetClient().Preload("WalletAddresses").Preload("BlockchainExplorers").Model(&models.Blockchain{}).Scopes()
+	result := repository.IDatabaseHandler.GetClient().Preload("WalletAddresses").Preload("BlockchainExplorers").Model(&models.Blockchain{}).Scopes(scopes.PaginateScope(page, limit))
 	result = result.Find(&blockchain)
 
 	if result.Error != nil {

@@ -12,7 +12,7 @@ import (
 )
 
 type IWalletAddressRepository interface {
-	GetList() ([]*models.WalletAddress, error)
+	GetList(page, limit uint) ([]*models.WalletAddress, error)
 	GetByUuid(uuid *uuid.UUID) (*models.WalletAddress, error)
 	Create(blockchain *models.WalletAddress) (*models.WalletAddress, error)
 	GetCount() (int64, error)
@@ -64,11 +64,11 @@ func (repository *WalletAddressRepository) GetActiveList() ([]*models.WalletAddr
 	return walletAddress, nil
 }
 
-func (repository *WalletAddressRepository) GetList() ([]*models.WalletAddress, error) {
+func (repository *WalletAddressRepository) GetList(page, limit uint) ([]*models.WalletAddress, error) {
 	var walletAddress []*models.WalletAddress
 
 	result := repository.IDatabaseHandler.GetClient()
-	result = result.Preload("Blockchain").Find(&walletAddress)
+	result = result.Preload("Blockchain").Scopes(scopes.PaginateScope(page, limit)).Find(&walletAddress)
 
 	if result.Error != nil {
 		return nil, fmt.Errorf("walletAddress get list failed: %s", result.Error.Error())

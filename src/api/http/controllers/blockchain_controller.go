@@ -19,7 +19,9 @@ type BlockchainController struct {
 func (controller *BlockchainController) GetList(c *gin.Context) {
 	var blockchain *scopes.PaginateModel
 
-	blockchain, err := controller.IBlockchainService.GetList()
+	blockchain, err := controller.IBlockchainService.GetList(
+		uint(c.GetInt("page")),
+		uint(c.GetInt("limit")))
 
 	if err != nil {
 		response.Api(c).SetStatusCode(http.StatusNotFound).Send()

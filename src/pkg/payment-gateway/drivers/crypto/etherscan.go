@@ -16,9 +16,11 @@ type Etherscan struct {
 	apiClient *resty.Client
 	apiKey    string
 	baseUrl   string
+	page      uint
+	limit     uint
 }
 
-func NewEtherscan(baseUrl string) (*Etherscan, error) {
+func NewEtherscan(baseUrl string, page, limit uint) (*Etherscan, error) {
 	configs := config.GetInstance()
 	requestTimeout, _ := strconv.Atoi(configs.Get("EXPLORER_REQUEST_TIMEOUT"))
 
@@ -31,6 +33,8 @@ func NewEtherscan(baseUrl string) (*Etherscan, error) {
 		apiClient: resty.New(),
 		apiKey:    secrets.Data["ethApiKey"].(string),
 		baseUrl:   baseUrl,
+		page:      page,
+		limit:     limit,
 	}
 
 	etherscan.apiClient.
@@ -41,7 +45,7 @@ func NewEtherscan(baseUrl string) (*Etherscan, error) {
 }
 
 func (e *Etherscan) FetchTransactions(walletAddress string) ([]models.Response, error) {
-	url := fmt.Sprintf("%s/api?module=account&action=txlist&address=%s&apikey=%s", e.baseUrl, walletAddress, e.apiKey)
+	url := fmt.Sprintf("%s/api?module=account&action=txlist&page=1&address=%s&page=%d&offset=%d&apikey=%s", e.baseUrl, walletAddress, e.page, e.limit, e.apiKey)
 
 	resp, err := e.apiClient.R().
 		Get(url)

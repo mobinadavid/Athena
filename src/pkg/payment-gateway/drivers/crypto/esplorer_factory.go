@@ -7,14 +7,14 @@ import (
 
 type ExplorerFactory struct{}
 
-func (f *ExplorerFactory) CreateExplorer(blockchain *models.Blockchain, baseUrl string) (BlockchainExplorer, error) {
+func (f *ExplorerFactory) CreateExplorer(blockchain *models.Blockchain, baseUrl string, page, limit uint) (BlockchainExplorer, error) {
 	switch blockchain.NativeAsset {
 	case "ETH":
-		return NewEtherscan(baseUrl)
+		return NewEtherscan(baseUrl, page, limit)
 	case "TRX":
 		return NewTronscan(baseUrl)
 	case "BSC":
-		return NewBscscan(baseUrl)
+		return NewBscscan(baseUrl, page, limit)
 	default:
 		return nil, fmt.Errorf("unsupported blockchain: %s", blockchain.NativeAsset)
 	}

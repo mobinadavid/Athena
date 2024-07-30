@@ -16,9 +16,11 @@ type Bscscan struct {
 	apiClient *resty.Client
 	apiKey    string
 	baseUrl   string
+	page      uint
+	limit     uint
 }
 
-func NewBscscan(baseUrl string) (*Bscscan, error) {
+func NewBscscan(baseUrl string, page, limit uint) (*Bscscan, error) {
 	configs := config.GetInstance()
 	requestTimeout, _ := strconv.Atoi(configs.Get("EXPLORER_REQUEST_TIMEOUT"))
 
@@ -31,6 +33,8 @@ func NewBscscan(baseUrl string) (*Bscscan, error) {
 		apiClient: resty.New(),
 		apiKey:    secrets.Data["bscApiKey"].(string),
 		baseUrl:   baseUrl,
+		page:      page,
+		limit:     limit,
 	}
 
 	bscscan.apiClient.
@@ -41,7 +45,7 @@ func NewBscscan(baseUrl string) (*Bscscan, error) {
 }
 
 func (b *Bscscan) FetchTransactions(walletAddress string) ([]models.Response, error) {
-	url := fmt.Sprintf("%s/api?module=account&action=txlist&address=%s&apikey=%s", b.baseUrl, walletAddress, b.apiKey)
+	url := fmt.Sprintf("%s/api?module=account&action=txlist&page=%d&offset=%d&address=%s&apikey=%s", b.baseUrl, b.page, b.limit, walletAddress, b.apiKey)
 
 	resp, err := b.apiClient.R().
 		Get(url)

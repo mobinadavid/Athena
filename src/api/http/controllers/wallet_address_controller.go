@@ -52,9 +52,12 @@ func (controller *WalletAddressController) AllocateWalletAddresses(c *gin.Contex
 }
 
 func (controller *WalletAddressController) GetList(c *gin.Context) {
+
 	var walletAddress *scopes.PaginateModel
 
-	walletAddress, err := controller.IWalletAddressService.GetList()
+	walletAddress, err := controller.IWalletAddressService.GetList(
+		uint(1),
+		uint(1))
 
 	if err != nil {
 		response.Api(c).SetStatusCode(http.StatusNotFound).SetMessage(err.Error()).Send()
@@ -231,7 +234,11 @@ func (controller *WalletAddressController) GetTransactions(c *gin.Context) {
 		return
 	}
 
-	transactions, err := controller.IWalletAddressService.GetTransactions(walletAddress)
+	transactions, err := controller.IWalletAddressService.GetTransactions(walletAddress,
+		uint(c.GetInt("page")),
+		uint(c.GetInt("limit")),
+	)
+
 	if err != nil {
 		response.Api(c).
 			SetMessage(err.Error()).
