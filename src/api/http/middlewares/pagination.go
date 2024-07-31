@@ -19,9 +19,15 @@ func PaginationMiddleware(context *gin.Context) {
 	case limit <= 0:
 		limit = 10
 	}
+
+	sortBy := context.DefaultQuery("sort_by", "created_at")
+	sortOrder := context.DefaultQuery("sort_order", "asc")
+
 	// Set values in context
 	context.Set("page", page)
 	context.Set("limit", limit)
+	context.Set("sort_by", sortBy)
+	context.Set("sort_order", sortOrder)
 
 	context.Next()
 }

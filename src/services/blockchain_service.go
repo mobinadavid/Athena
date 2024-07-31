@@ -10,7 +10,7 @@ import (
 )
 
 type IBlockChainService interface {
-	GetList(page, limit uint) (*scopes.PaginateModel, error)
+	GetList(params *scopes.QueryBuilderModel) (*scopes.PaginateModel, error)
 	Create(request *requests.CreateBlockchainRequest) (*models.Blockchain, error)
 	GetByUuid(uuid *uuid.UUID) (*models.Blockchain, error)
 	Delete(uuid *uuid.UUID) error
@@ -22,27 +22,21 @@ type BlockchainService struct {
 	IBlockchainRepository repositories.IBlockchainRepository
 }
 
-func (service *BlockchainService) GetList(page, limit uint) (*scopes.PaginateModel, error) {
-	blockchains, err := service.IBlockchainRepository.GetList(page, limit)
+func (service *BlockchainService) GetList(params *scopes.QueryBuilderModel) (*scopes.PaginateModel, error) {
+	blockchains, count, err := service.IBlockchainRepository.GetList(params)
 	if err != nil {
 		return nil, err
 	}
 
-	allBlockchainCount, err := service.IBlockchainRepository.GetCount()
-	if err != nil {
-		return nil, err
-	}
-
-	totalPages := int64(math.Ceil(float64(allBlockchainCount) / float64(limit)))
+	totalPages := int64(math.Ceil(float64(count) / float64(params.Limit)))
 
 	return &scopes.PaginateModel{
-		CurrentPage: page,
-		Limit:       limit,
+		Limit:       params.Limit,
+		CurrentPage: params.Page,
 		TotalPages:  totalPages,
-		TotalItems:  allBlockchainCount,
+		TotalItems:  count,
 		Items:       &blockchains,
 	}, nil
-
 }
 
 func (service *BlockchainService) GetByUuid(uuid *uuid.UUID) (*models.Blockchain, error) {

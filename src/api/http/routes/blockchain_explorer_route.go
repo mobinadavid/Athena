@@ -12,9 +12,9 @@ func BlockchainExplorerRouter(router *gin.RouterGroup) {
 	blockchain := router.Group("blockchain-explorer")
 
 	blockchain.GET("", middlewares.PaginationMiddleware, serviceContainer.BlockchainExplorerController.GetList)
-	blockchain.GET(":uuid", middlewares.PaginationMiddleware, serviceContainer.BlockchainExplorerController.GetByUuid)
-	blockchain.DELETE(":uuid", middlewares.PaginationMiddleware, serviceContainer.BlockchainExplorerController.Delete)
-	blockchain.PUT(":uuid", middlewares.PaginationMiddleware, serviceContainer.BlockchainExplorerController.Update)
-	blockchain.POST("", middlewares.PaginationMiddleware, serviceContainer.BlockchainExplorerController.Create)
+	blockchain.GET(":uuid", serviceContainer.BlockchainExplorerController.GetByUuid)
+	blockchain.DELETE(":uuid", serviceContainer.BlockchainExplorerController.Delete)
+	blockchain.PUT(":uuid", serviceContainer.BlockchainExplorerController.Update)
+	blockchain.POST("", serviceContainer.BlockchainExplorerController.Create)
 
 }

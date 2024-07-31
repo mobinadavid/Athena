@@ -4,18 +4,19 @@ import (
 	"athena/src/database"
 	"athena/src/database/scopes"
 	"athena/src/models"
+	"athena/src/pkg/utils"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 )
 
 type IBlockchainRepository interface {
-	GetList(page, limit uint) ([]*models.Blockchain, error)
+	GetList(params *scopes.QueryBuilderModel) ([]*models.Blockchain, int64, error)
 	GetByUuid(uuid *uuid.UUID) (*models.Blockchain, error)
 	GetByName(name string) (*models.Blockchain, error)
 	Create(blockchain *models.Blockchain) (*models.Blockchain, error)
-	GetCount() (int64, error)
 	Delete(uuid *uuid.UUID) error
 	Update(uuid *uuid.UUID, req *models.Blockchain) (*models.Blockchain, error)
 }
@@ -24,18 +25,56 @@ type BlockchainRepository struct {
 	IDatabaseHandler *database.Database
 }
 
-func (repository *BlockchainRepository) GetList(page, limit uint) ([]*models.Blockchain, error) {
-	var blockchain []*models.Blockchain
+func (repository *BlockchainRepository) GetList(params *scopes.QueryBuilderModel) ([]*models.Blockchain, int64, error) {
+	var blockchains []*models.Blockchain
+	var count int64
+	query := repository.IDatabaseHandler.GetClient().Preload("WalletAddresses").Preload("BlockchainExplorers").Model(&models.Blockchain{})
 
-	result := repository.IDatabaseHandler.GetClient().Preload("WalletAddresses").Preload("BlockchainExplorers").Model(&models.Blockchain{}).Scopes(scopes.PaginateScope(page, limit))
-	result = result.Find(&blockchain)
+	validFilters := utils.GetStructFieldNames(models.Blockchain{})
+	namingStrategy := schema.NamingStrategy{}
 
-	if result.Error != nil {
-		return nil, fmt.Errorf("blockchain get list failed: %s", result.Error.Error())
+	for key, value := range params.Filters {
+		if validFilters[key] {
+			query = query.Where(fmt.Sprintf("%s = ?", namingStrategy.ColumnName("", key)), value)
+		}
 	}
 
-	return blockchain, nil
+	// Apply created_at range filters
+	if params.CreatedAfter != nil {
+		query = query.Where("created_at >= ?", params.CreatedAfter)
+	}
+	if params.CreatedBefore != nil {
+		query = query.Where("created_at <= ?", params.CreatedBefore)
+	}
 
+	// Apply sorting using safe methods
+	if params.SortBy != "" {
+		sortOrder := "asc"
+		if params.SortOrder == "desc" {
+			sortOrder = "desc"
+		}
+		query = query.Order(fmt.Sprintf("%s %s", namingStrategy.ColumnName("", params.SortBy), sortOrder))
+	}
+
+	// Get total count before pagination
+	query.Count(&count)
+
+	// Apply pagination
+	if params.Page != 0 && params.Limit != 0 {
+		query = query.Scopes(scopes.PaginateScope(params.Page, params.Limit))
+	}
+
+	// Execute the query
+	result := query.Find(&blockchains)
+	if result.Error != nil {
+		return nil, 0, result.Error
+	}
+
+	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, 0, fmt.Errorf("blockchains get list failed: %s", result.Error.Error())
+	}
+
+	return blockchains, count, nil
 }
 
 func (repository *BlockchainRepository) GetByUuid(uuid *uuid.UUID) (*models.Blockchain, error) {
@@ -67,19 +106,6 @@ func (repository *BlockchainRepository) Create(blockchain *models.Blockchain) (*
 	}
 
 	return blockchain, nil
-}
-
-func (repository *BlockchainRepository) GetCount() (int64, error) {
-	var count int64
-
-	result := repository.IDatabaseHandler.GetClient().Model(&models.Blockchain{})
-	result = result.Count(&count)
-
-	if result.Error != nil {
-		return 0, fmt.Errorf("blockchain get count failed: %s", result.Error.Error())
-	}
-
-	return count, nil
 }
 
 func (repository *BlockchainRepository) Delete(uuid *uuid.UUID) error {

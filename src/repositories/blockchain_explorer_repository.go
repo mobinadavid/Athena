@@ -4,17 +4,18 @@ import (
 	"athena/src/database"
 	"athena/src/database/scopes"
 	"athena/src/models"
+	"athena/src/pkg/utils"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 )
 
 type IBlockchainExplorerRepository interface {
-	GetList(page, limit uint) ([]*models.BlockchainExplorer, error)
+	GetList(params *scopes.QueryBuilderModel) ([]*models.BlockchainExplorer, int64, error)
 	GetByUuid(uuid *uuid.UUID) (*models.BlockchainExplorer, error)
 	Create(explorer *models.BlockchainExplorer) (*models.BlockchainExplorer, error)
-	GetCount() (int64, error)
 	Delete(uuid *uuid.UUID) error
 	Update(uuid *uuid.UUID, req *models.BlockchainExplorer) (*models.BlockchainExplorer, error)
 	GetExplorerByBlockchain(blockchain *models.Blockchain) (*models.BlockchainExplorer, error)
@@ -24,26 +25,55 @@ type BlockchainExplorerRepository struct {
 	IDatabaseHandler *database.Database
 }
 
-func (repository *BlockchainExplorerRepository) Create(blockchainExplorer *models.BlockchainExplorer) (*models.BlockchainExplorer, error) {
-	result := repository.IDatabaseHandler.GetClient().Create(&blockchainExplorer)
-	if result.Error != nil {
-		return nil, fmt.Errorf("blockchainExplorer creation failed: %s", result.Error.Error())
-	}
-
-	return blockchainExplorer, nil
-}
-
-func (repository *BlockchainExplorerRepository) GetList(page, limit uint) ([]*models.BlockchainExplorer, error) {
+func (repository *BlockchainExplorerRepository) GetList(params *scopes.QueryBuilderModel) ([]*models.BlockchainExplorer, int64, error) {
 	var blockchainExplorers []*models.BlockchainExplorer
-	result := repository.IDatabaseHandler.GetClient().Preload("Blockchains").Model(&models.BlockchainExplorer{})
-	result = result.Scopes(scopes.PaginateScope(page, limit))
-	result = result.Find(&blockchainExplorers)
+	var count int64
+	query := repository.IDatabaseHandler.GetClient().Preload("Blockchains").Model(&models.BlockchainExplorer{})
+	validFilters := utils.GetStructFieldNames(models.BlockchainExplorer{})
+	namingStrategy := schema.NamingStrategy{}
 
-	if result.Error != nil {
-		return nil, fmt.Errorf("blockchainExplorers get list failed: %s", result.Error.Error())
+	for key, value := range params.Filters {
+		if validFilters[key] {
+			query = query.Where(fmt.Sprintf("%s = ?", namingStrategy.ColumnName("", key)), value)
+		}
 	}
 
-	return blockchainExplorers, nil
+	// Apply created_at range filters
+	if params.CreatedAfter != nil {
+		query = query.Where("created_at >= ?", params.CreatedAfter)
+	}
+	if params.CreatedBefore != nil {
+		query = query.Where("created_at <= ?", params.CreatedBefore)
+	}
+
+	// Apply sorting using safe methods
+	if params.SortBy != "" {
+		sortOrder := "asc"
+		if params.SortOrder == "desc" {
+			sortOrder = "desc"
+		}
+		query = query.Order(fmt.Sprintf("%s %s", namingStrategy.ColumnName("", params.SortBy), sortOrder))
+	}
+
+	// Get total count before pagination
+	query.Count(&count)
+
+	// Apply pagination
+	if params.Page != 0 && params.Limit != 0 {
+		query = query.Scopes(scopes.PaginateScope(params.Page, params.Limit))
+	}
+
+	// Execute the query
+	result := query.Find(&blockchainExplorers)
+	if result.Error != nil {
+		return nil, 0, result.Error
+	}
+
+	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, 0, fmt.Errorf("blockchainExplorers get list failed: %s", result.Error.Error())
+	}
+
+	return blockchainExplorers, count, nil
 }
 
 func (repository *BlockchainExplorerRepository) GetByUuid(uuid *uuid.UUID) (*models.BlockchainExplorer, error) {
@@ -62,17 +92,13 @@ func (repository *BlockchainExplorerRepository) GetByUuid(uuid *uuid.UUID) (*mod
 	return &blockchainExplorer, nil
 }
 
-func (repository *BlockchainExplorerRepository) GetCount() (int64, error) {
-	var count int64
-	result := repository.IDatabaseHandler.GetClient().Model(&models.BlockchainExplorer{})
-
-	result = result.Count(&count)
-
+func (repository *BlockchainExplorerRepository) Create(blockchainExplorer *models.BlockchainExplorer) (*models.BlockchainExplorer, error) {
+	result := repository.IDatabaseHandler.GetClient().Create(&blockchainExplorer)
 	if result.Error != nil {
-		return 0, fmt.Errorf("blockchainExplorers get count failed: %s", result.Error.Error())
+		return nil, fmt.Errorf("blockchainExplorer creation failed: %s", result.Error.Error())
 	}
 
-	return count, nil
+	return blockchainExplorer, nil
 }
 
 func (repository *BlockchainExplorerRepository) Delete(uuid *uuid.UUID) error {

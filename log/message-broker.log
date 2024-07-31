@@ -54,3 +54,15 @@
 {"level":"info","ts":"2024-07-31T14:09:47.398+0330","caller":"rabbitmq/rabbitmq.go:149","msg":"RabbitMQ: Shutdown the RabbitMQ consumer:","QueueName: ":"log-queue","timestamp":"2024-07-31T14:09:47.398+0330"}
 {"level":"info","ts":"2024-07-31T14:09:50.657+0330","caller":"Driver/drivers.go:32","msg":"Broker Driver set correctly","timestamp":"2024-07-31T14:09:50.657+0330"}
 {"level":"info","ts":"2024-07-31T14:09:50.658+0330","caller":"rabbitmq/rabbitmq.go:61","msg":"RabbitMQ: Start Consume job: ","QueueName: ":"log-queue","timestamp":"2024-07-31T14:09:50.658+0330"}
+{"level":"info","ts":"2024-07-31T15:32:01.558+0330","caller":"rabbitmq/rabbitmq.go:149","msg":"RabbitMQ: Shutdown the RabbitMQ consumer:","QueueName: ":"log-queue","timestamp":"2024-07-31T15:32:01.558+0330"}
+{"level":"info","ts":"2024-07-31T15:32:06.313+0330","caller":"Driver/drivers.go:32","msg":"Broker Driver set correctly","timestamp":"2024-07-31T15:32:06.313+0330"}
+{"level":"info","ts":"2024-07-31T15:32:06.314+0330","caller":"rabbitmq/rabbitmq.go:61","msg":"RabbitMQ: Start Consume job: ","QueueName: ":"log-queue","timestamp":"2024-07-31T15:32:06.314+0330"}
+{"level":"info","ts":"2024-07-31T15:50:39.970+0330","caller":"rabbitmq/rabbitmq.go:149","msg":"RabbitMQ: Shutdown the RabbitMQ consumer:","QueueName: ":"log-queue","timestamp":"2024-07-31T15:50:39.970+0330"}
+{"level":"info","ts":"2024-07-31T15:50:43.666+0330","caller":"Driver/drivers.go:32","msg":"Broker Driver set correctly","timestamp":"2024-07-31T15:50:43.666+0330"}
+{"level":"info","ts":"2024-07-31T15:50:43.667+0330","caller":"rabbitmq/rabbitmq.go:61","msg":"RabbitMQ: Start Consume job: ","QueueName: ":"log-queue","timestamp":"2024-07-31T15:50:43.667+0330"}
+{"level":"info","ts":"2024-07-31T15:56:57.334+0330","caller":"rabbitmq/rabbitmq.go:149","msg":"RabbitMQ: Shutdown the RabbitMQ consumer:","QueueName: ":"log-queue","timestamp":"2024-07-31T15:56:57.334+0330"}
+{"level":"info","ts":"2024-07-31T15:57:00.628+0330","caller":"Driver/drivers.go:32","msg":"Broker Driver set correctly","timestamp":"2024-07-31T15:57:00.628+0330"}
+{"level":"info","ts":"2024-07-31T15:57:00.630+0330","caller":"rabbitmq/rabbitmq.go:61","msg":"RabbitMQ: Start Consume job: ","QueueName: ":"log-queue","timestamp":"2024-07-31T15:57:00.630+0330"}
+{"level":"info","ts":"2024-07-31T16:08:39.493+0330","caller":"rabbitmq/rabbitmq.go:149","msg":"RabbitMQ: Shutdown the RabbitMQ consumer:","QueueName: ":"log-queue","timestamp":"2024-07-31T16:08:39.493+0330"}
+{"level":"info","ts":"2024-07-31T16:09:22.314+0330","caller":"Driver/drivers.go:32","msg":"Broker Driver set correctly","timestamp":"2024-07-31T16:09:22.314+0330"}
+{"level":"info","ts":"2024-07-31T16:09:22.316+0330","caller":"rabbitmq/rabbitmq.go:61","msg":"RabbitMQ: Start Consume job: ","QueueName: ":"log-queue","timestamp":"2024-07-31T16:09:22.316+0330"}

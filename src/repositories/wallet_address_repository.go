@@ -4,18 +4,19 @@ import (
 	"athena/src/database"
 	"athena/src/database/scopes"
 	"athena/src/models"
+	"athena/src/pkg/utils"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 	"time"
 )
 
 type IWalletAddressRepository interface {
-	GetList(page, limit uint) ([]*models.WalletAddress, error)
+	GetList(params *scopes.QueryBuilderModel) ([]*models.WalletAddress, int64, error)
 	GetByUuid(uuid *uuid.UUID) (*models.WalletAddress, error)
 	Create(blockchain *models.WalletAddress) (*models.WalletAddress, error)
-	GetCount() (int64, error)
 	Delete(uuid *uuid.UUID) error
 	Update(uuid *uuid.UUID, req *models.WalletAddress) (*models.WalletAddress, error)
 	GetAllocatedList() ([]*models.WalletAddress, error)
@@ -27,52 +28,58 @@ type WalletAddressRepository struct {
 	IDatabaseHandler *database.Database
 }
 
-func (repository *WalletAddressRepository) UpdateWalletAddressToAllocated(walletAddresses []*models.WalletAddress) error {
-	for _, walletAddress := range walletAddresses {
-		walletAddress.AllocatedAt = time.Now()
-		if err := repository.IDatabaseHandler.GetClient().Save(walletAddress).Error; err != nil {
-			return err
+func (repository *WalletAddressRepository) GetList(params *scopes.QueryBuilderModel) ([]*models.WalletAddress, int64, error) {
+	var walletAddress []*models.WalletAddress
+	var count int64
+
+	query := repository.IDatabaseHandler.GetClient().Preload("Blockchain").Model(&models.WalletAddress{})
+
+	validFilters := utils.GetStructFieldNames(models.WalletAddress{})
+	namingStrategy := schema.NamingStrategy{}
+
+	for key, value := range params.Filters {
+		if validFilters[key] {
+			query = query.Where(fmt.Sprintf("%s = ?", namingStrategy.ColumnName("", key)), value)
 		}
 	}
-	return nil
-}
 
-func (repository *WalletAddressRepository) GetUnallocatedWalletAddress(count int) ([]*models.WalletAddress, error) {
-	var walletAddresses []*models.WalletAddress
-
-	// Use IsAllocated to filter records
-	result := repository.IDatabaseHandler.GetClient().Scopes(scopes.IsNotAllocated()).Preload("Blockchain").Limit(count)
-	if err := result.Find(&walletAddresses).Error; err != nil {
-		return nil, err
+	// Apply created_at range filters
+	if params.CreatedAfter != nil {
+		query = query.Where("created_at >= ?", params.CreatedAfter)
+	}
+	if params.CreatedBefore != nil {
+		query = query.Where("created_at <= ?", params.CreatedBefore)
 	}
 
-	return walletAddresses, nil
-}
+	// Apply sorting using safe methods
+	if params.SortBy != "" {
+		sortOrder := "asc"
+		if params.SortOrder == "desc" {
+			sortOrder = "desc"
+		}
+		query = query.Order(fmt.Sprintf("%s %s", namingStrategy.ColumnName("", params.SortBy), sortOrder))
+	}
 
-func (repository *WalletAddressRepository) GetAllocatedList() ([]*models.WalletAddress, error) {
-	var walletAddress []*models.WalletAddress
+	// Get total count before pagination
+	query.Count(&count)
 
-	result := repository.IDatabaseHandler.GetClient()
-	result = result.Scopes(scopes.IsAllocated()).Preload("Blockchain").Find(&walletAddress)
+	// Apply pagination
+	if params.Page != 0 && params.Limit != 0 {
+		query = query.Scopes(scopes.PaginateScope(params.Page, params.Limit))
+	}
 
+	// Execute the query
+	result := query.Find(&walletAddress)
 	if result.Error != nil {
-		return nil, fmt.Errorf("walletAddress get list failed: %s", result.Error.Error())
+		return nil, 0, result.Error
 	}
 
-	return walletAddress, nil
-}
-
-func (repository *WalletAddressRepository) GetList(page, limit uint) ([]*models.WalletAddress, error) {
-	var walletAddress []*models.WalletAddress
-
-	result := repository.IDatabaseHandler.GetClient()
-	result = result.Preload("Blockchain").Scopes(scopes.PaginateScope(page, limit)).Find(&walletAddress)
-
-	if result.Error != nil {
-		return nil, fmt.Errorf("walletAddress get list failed: %s", result.Error.Error())
+	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, 0, fmt.Errorf("walletAddresses get list failed: %s", result.Error.Error())
 	}
 
-	return walletAddress, nil
+	return walletAddress, count, nil
+
 }
 
 func (repository *WalletAddressRepository) GetByUuid(uuid *uuid.UUID) (*models.WalletAddress, error) {
@@ -93,19 +100,6 @@ func (repository *WalletAddressRepository) Create(walletAddress *models.WalletAd
 	}
 
 	return walletAddress, nil
-}
-
-func (repository *WalletAddressRepository) GetCount() (int64, error) {
-	var count int64
-
-	result := repository.IDatabaseHandler.GetClient().Model(&models.WalletAddress{}).Count(&count)
-
-	if result.Error != nil {
-		return 0, fmt.Errorf("walletAddresses get count failed: %s", result.Error.Error())
-	}
-
-	return count, nil
-
 }
 
 func (repository *WalletAddressRepository) Delete(uuid *uuid.UUID) error {
@@ -141,5 +135,39 @@ func (repository *WalletAddressRepository) Update(uuid *uuid.UUID, req *models.W
 	}
 
 	return &walletAddress, nil
+}
 
+func (repository *WalletAddressRepository) UpdateWalletAddressToAllocated(walletAddresses []*models.WalletAddress) error {
+	for _, walletAddress := range walletAddresses {
+		walletAddress.AllocatedAt = time.Now()
+		if err := repository.IDatabaseHandler.GetClient().Save(walletAddress).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (repository *WalletAddressRepository) GetUnallocatedWalletAddress(count int) ([]*models.WalletAddress, error) {
+	var walletAddresses []*models.WalletAddress
+
+	// Use IsAllocated to filter records
+	result := repository.IDatabaseHandler.GetClient().Scopes(scopes.IsNotAllocated()).Preload("Blockchain").Limit(count)
+	if err := result.Find(&walletAddresses).Error; err != nil {
+		return nil, err
+	}
+
+	return walletAddresses, nil
+}
+
+func (repository *WalletAddressRepository) GetAllocatedList() ([]*models.WalletAddress, error) {
+	var walletAddress []*models.WalletAddress
+
+	result := repository.IDatabaseHandler.GetClient()
+	result = result.Scopes(scopes.IsAllocated()).Preload("Blockchain").Find(&walletAddress)
+
+	if result.Error != nil {
+		return nil, fmt.Errorf("walletAddress get list failed: %s", result.Error.Error())
+	}
+
+	return walletAddress, nil
 }

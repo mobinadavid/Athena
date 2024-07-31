@@ -10,7 +10,7 @@ import (
 )
 
 type IBlockchainExplorerService interface {
-	GetList(page, limit uint) (*scopes.PaginateModel, error)
+	GetList(params *scopes.QueryBuilderModel) (*scopes.PaginateModel, error)
 	Create(request *requests.CreateBlockchainExplorerRequest) (*models.BlockchainExplorer, error)
 	GetByUuid(uuid *uuid.UUID) (*models.BlockchainExplorer, error)
 	GetExplorerByBlockchain(blockchain *models.Blockchain) (*models.BlockchainExplorer, error)
@@ -23,23 +23,18 @@ type BlockchainExplorerService struct {
 	IBlockchainService            *BlockchainService
 }
 
-func (service *BlockchainExplorerService) GetList(page, limit uint) (*scopes.PaginateModel, error) {
-	var blockchainExplorers []*models.BlockchainExplorer
-	var err error
-	var count int64
-
-	blockchainExplorers, err = service.IBlockchainExplorerRepository.GetList(page, limit)
-	count, err = service.IBlockchainExplorerRepository.GetCount()
+func (service *BlockchainExplorerService) GetList(params *scopes.QueryBuilderModel) (*scopes.PaginateModel, error) {
+	blockchainExplorers, count, err := service.IBlockchainExplorerRepository.GetList(params)
 	if err != nil {
 		return nil, err
 	}
 
-	totalPages := int64(math.Ceil(float64(count) / float64(limit)))
+	totalPages := int64(math.Ceil(float64(count) / float64(params.Limit)))
 
 	return &scopes.PaginateModel{
+		Limit:       params.Limit,
+		CurrentPage: params.Page,
 		TotalPages:  totalPages,
-		CurrentPage: page,
-		Limit:       limit,
 		TotalItems:  count,
 		Items:       &blockchainExplorers,
 	}, nil

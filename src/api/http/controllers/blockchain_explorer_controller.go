@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"net/http"
+	"time"
 )
 
 type BlockchainExplorerController struct {
@@ -18,11 +19,36 @@ type BlockchainExplorerController struct {
 
 func (controller *BlockchainExplorerController) GetList(c *gin.Context) {
 	var blockchainExplorer *scopes.PaginateModel
+	filters := make(map[string]interface{})
+	for key, values := range c.Request.URL.Query() {
+		if key != "page" && key != "limit" && key != "sort_by" && key != "sort_order" && key != "created_after" && key != "created_before" {
+			filters[key] = values[0]
+		}
+	}
 
-	blockchainExplorer, err := controller.IBlockchainExplorerService.GetList(
-		uint(c.GetInt("page")),
-		uint(c.GetInt("limit")))
+	params := &scopes.QueryBuilderModel{
+		Page:      uint(c.GetInt("page")),
+		Limit:     uint(c.GetInt("limit")),
+		SortBy:    c.GetString("sort_by"),
+		SortOrder: c.GetString("sort_order"),
+		Filters:   filters,
+	}
 
+	if createdAfterStr := c.Query("created_after"); createdAfterStr != "" {
+		createdAfter, err := time.Parse(time.RFC3339, createdAfterStr)
+		if err == nil {
+			params.CreatedAfter = &createdAfter
+		}
+	}
+
+	if createdBeforeStr := c.Query("created_before"); createdBeforeStr != "" {
+		createdBefore, err := time.Parse(time.RFC3339, createdBeforeStr)
+		if err == nil {
+			params.CreatedBefore = &createdBefore
+		}
+	}
+
+	blockchainExplorer, err := controller.IBlockchainExplorerService.GetList(params)
 	if err != nil {
 		response.Api(c).SetStatusCode(http.StatusNotFound).Send()
 		return
