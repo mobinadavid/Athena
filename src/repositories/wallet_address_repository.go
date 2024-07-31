@@ -18,7 +18,7 @@ type IWalletAddressRepository interface {
 	GetCount() (int64, error)
 	Delete(uuid *uuid.UUID) error
 	Update(uuid *uuid.UUID, req *models.WalletAddress) (*models.WalletAddress, error)
-	GetActiveList() ([]*models.WalletAddress, error)
+	GetAllocatedList() ([]*models.WalletAddress, error)
 	GetUnallocatedWalletAddress(count int) ([]*models.WalletAddress, error)
 	UpdateWalletAddressToAllocated(walletAddresses []*models.WalletAddress) error
 }
@@ -41,21 +41,19 @@ func (repository *WalletAddressRepository) GetUnallocatedWalletAddress(count int
 	var walletAddresses []*models.WalletAddress
 
 	// Use IsAllocated to filter records
-	db := repository.IDatabaseHandler.GetClient()
-	query := scopes.IsAllocated()(db).Preload("Blockchain").Limit(count)
-
-	if err := query.Find(&walletAddresses).Error; err != nil {
+	result := repository.IDatabaseHandler.GetClient().Scopes(scopes.IsNotAllocated()).Preload("Blockchain").Limit(count)
+	if err := result.Find(&walletAddresses).Error; err != nil {
 		return nil, err
 	}
 
 	return walletAddresses, nil
 }
 
-func (repository *WalletAddressRepository) GetActiveList() ([]*models.WalletAddress, error) {
+func (repository *WalletAddressRepository) GetAllocatedList() ([]*models.WalletAddress, error) {
 	var walletAddress []*models.WalletAddress
 
 	result := repository.IDatabaseHandler.GetClient()
-	result = result.Scopes(scopes.IsActive()).Preload("Blockchain").Find(&walletAddress)
+	result = result.Scopes(scopes.IsAllocated()).Preload("Blockchain").Find(&walletAddress)
 
 	if result.Error != nil {
 		return nil, fmt.Errorf("walletAddress get list failed: %s", result.Error.Error())

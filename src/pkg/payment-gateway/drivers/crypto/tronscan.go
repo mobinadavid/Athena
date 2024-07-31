@@ -12,16 +12,20 @@ import (
 
 type Tronscan struct {
 	apiClient *resty.Client
+	page      uint
+	limit     uint
 	baseUrl   string
 }
 
-func NewTronscan(baseUrl string) (*Tronscan, error) {
+func NewTronscan(baseUrl string, page, limit uint) (*Tronscan, error) {
 	configs := config.GetInstance()
 	requestTimeout, _ := strconv.Atoi(configs.Get("EXPLORER_REQUEST_TIMEOUT"))
 
 	tronscan := &Tronscan{
 		apiClient: resty.New(),
 		baseUrl:   baseUrl,
+		page:      page,
+		limit:     limit,
 	}
 
 	tronscan.apiClient.
@@ -31,29 +35,30 @@ func NewTronscan(baseUrl string) (*Tronscan, error) {
 	return tronscan, nil
 }
 
-func (t *Tronscan) FetchTransactions(walletAddress string) ([]models.Response, error) {
-	url := fmt.Sprintf("%s/api/transaction?limit=20&start=0&address=%s", t.baseUrl, walletAddress)
-
+func (t *Tronscan) FetchTransactions(walletAddress string) (int64, []models.Response, error) {
+	start := (t.page - 1) * t.limit
+	url := fmt.Sprintf("%s/api/transaction?start=%d&limit=%d&address=%s", t.baseUrl, start, t.limit, walletAddress)
 	resp, err := t.apiClient.R().
 		Get(url)
 
 	if err != nil {
-		return nil, fmt.Errorf("error making request to Tronscan: %w", err)
+		return 0, nil, fmt.Errorf("error making request to Tronscan: %w", err)
 	}
 
 	if resp.StatusCode() != 200 {
-		return nil, fmt.Errorf("API request failed with status %d", resp.StatusCode())
+		return 0, nil, fmt.Errorf("API request failed with status %d", resp.StatusCode())
 	}
 
 	var tronScanResponse models.TronScanResponse
 	err = json.Unmarshal(resp.Body(), &tronScanResponse)
 	if err != nil {
-		return nil, fmt.Errorf("error unmarshalling response: %w", err)
+		return 0, nil, fmt.Errorf("error unmarshalling response: %w", err)
 	}
 
+	totalItems := int64(tronScanResponse.Total)
 	// Convert TronScanResponse to your Response type
 	var transactions []models.Response
-	for _, tx := range tronScanResponse.Records {
+	for _, tx := range tronScanResponse.Data {
 		response := models.Response{
 			BlockNumber: fmt.Sprintf("%v", tx["block"]),
 			Hash:        fmt.Sprintf("%v", tx["hash"]),
@@ -69,5 +74,5 @@ func (t *Tronscan) FetchTransactions(walletAddress string) ([]models.Response, e
 		transactions = append(transactions, response)
 	}
 
-	return transactions, nil
+	return totalItems, transactions, nil
 }

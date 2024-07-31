@@ -44,32 +44,49 @@ func NewEtherscan(baseUrl string, page, limit uint) (*Etherscan, error) {
 	return etherscan, nil
 }
 
-func (e *Etherscan) FetchTransactions(walletAddress string) ([]models.Response, error) {
-	url := fmt.Sprintf("%s/api?module=account&action=txlist&page=1&address=%s&page=%d&offset=%d&apikey=%s", e.baseUrl, walletAddress, e.page, e.limit, e.apiKey)
+func (e *Etherscan) FetchTransactions(walletAddress string) (int64, []models.Response, error) {
+	url := fmt.Sprintf("%s/api?module=account&action=txlist&address=%s&apikey=%s", e.baseUrl, walletAddress, e.apiKey)
 
 	resp, err := e.apiClient.R().
 		Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("error making request to Etherscan: %w", err)
+		return 0, nil, fmt.Errorf("error making request to Etherscan: %w", err)
 	}
 
 	if resp.StatusCode() != 200 {
-		return nil, fmt.Errorf("API request failed with status %d", resp.StatusCode())
+		return 0, nil, fmt.Errorf("API request failed with status %d", resp.StatusCode())
 	}
 
 	var etherScanResponse models.EtherScanResponse
 	err = json.Unmarshal(resp.Body(), &etherScanResponse)
 	if err != nil {
-		return nil, fmt.Errorf("error unmarshalling response: %w", err)
+		return 0, nil, fmt.Errorf("error unmarshalling response: %w", err)
 	}
 
 	if etherScanResponse.Status != "1" {
-		return nil, fmt.Errorf("API error: %s", etherScanResponse.Message)
+		return 0, nil, fmt.Errorf("API error: %s", etherScanResponse.Message)
 	}
 	// Parse transactions
+	startIndex := (e.page - 1) * e.limit
+	endIndex := e.page * e.limit
+	totalItems := int64(len(etherScanResponse.Result))
+
+	// Ensure startIndex and endIndex are within bounds
+	if startIndex > uint(len(etherScanResponse.Result)) {
+		startIndex = uint(len(etherScanResponse.Result))
+	}
+	if endIndex > uint(len(etherScanResponse.Result)) {
+		endIndex = uint(len(etherScanResponse.Result))
+	}
+	if startIndex == 0 && endIndex == 0 {
+		endIndex = uint(len(etherScanResponse.Result))
+	}
+
+	// Get the subset of data for the requested page
+	paginatedData := etherScanResponse.Result[startIndex:endIndex]
 
 	var transactions []models.Response
-	for _, tx := range etherScanResponse.Result {
+	for _, tx := range paginatedData {
 
 		response := models.Response{
 			BlockNumber:   tx["blockNumber"].(string),
@@ -86,5 +103,5 @@ func (e *Etherscan) FetchTransactions(walletAddress string) ([]models.Response, 
 		transactions = append(transactions, response)
 	}
 
-	return transactions, nil
+	return totalItems, transactions, nil
 }

@@ -23,7 +23,7 @@ type IWalletAddressService interface {
 	Delete(uuid *uuid.UUID) error
 	Update(uuid *uuid.UUID, request *requests.CreateWalletAddressRequest) (*models.WalletAddress, error)
 	HandleDeposits() error
-	GetActiveList() (*scopes.PaginateModel, error)
+	GetAllocatedList() (*scopes.PaginateModel, error)
 	GetTransactions(address *models.WalletAddress, page, limit uint) (*scopes.PaginateModel, error)
 	AllocateWalletAddresses(request *requests.AllocateWalletAddress) ([]string, error)
 }
@@ -95,8 +95,8 @@ func (service *WalletAddressService) AllocateWalletAddresses(request *requests.A
 	return walletAddressesName, nil
 }
 
-func (service *WalletAddressService) GetActiveList() (*scopes.PaginateModel, error) {
-	walletAddresses, err := service.IWalletAddressRepository.GetActiveList()
+func (service *WalletAddressService) GetAllocatedList() (*scopes.PaginateModel, error) {
+	walletAddresses, err := service.IWalletAddressRepository.GetAllocatedList()
 	if err != nil {
 		return nil, err
 	}
@@ -160,50 +160,41 @@ func (service *WalletAddressService) Update(uuid *uuid.UUID, request *requests.C
 }
 
 // GetTransactionsList fetches transactions from the specified blockchain explorer
-func (service *WalletAddressService) GetTransactionsList(walletAddress string, blockchain *models.Blockchain, page, limit uint) ([]models.Response, error) {
+func (service *WalletAddressService) GetTransactionsList(walletAddress string, blockchain *models.Blockchain, page, limit uint) (int64, []models.Response, error) {
 	explorerBaseUrl, err := service.IBlockchainExplorerService.GetExplorerByBlockchain(blockchain)
 	if err != nil {
-		return nil, fmt.Errorf("error finding explorer for blockchain %s: %w", blockchain.NativeAsset, err)
+		return 0, nil, fmt.Errorf("error finding explorer for blockchain %s: %w", blockchain.NativeAsset, err)
 	}
 
 	explorerFactory := &crypto.ExplorerFactory{}
 	explorer, err := explorerFactory.CreateExplorer(blockchain, explorerBaseUrl.BaseUrl, page, limit)
 	if err != nil {
-		return nil, fmt.Errorf("error creating explorer for blockchain %s: %w", blockchain.NativeAsset, err)
+		return 0, nil, fmt.Errorf("error creating explorer for blockchain %s: %w", blockchain.NativeAsset, err)
 	}
 
 	maxRetry, _ := strconv.Atoi(config.GetInstance().Get("GET_TRANSACTIONS_MAX_RETRY"))
 	for i := 0; i < maxRetry; i++ {
-		transactions, err := explorer.FetchTransactions(walletAddress)
+		totalItems, transactions, err := explorer.FetchTransactions(walletAddress)
 		if err == nil {
-			return transactions, nil
+			return totalItems, transactions, nil
 		}
 		fmt.Printf("Attempt %d: Error fetching transactions: %v\n", i+1, err)
 		time.Sleep(1 * time.Second)
 	}
 
-	return nil, fmt.Errorf("error fetching transactions after %d attempts: %w", maxRetry, err)
+	return 0, nil, fmt.Errorf("error fetching transactions after %d attempts: %w", maxRetry, err)
 }
 
 func (service *WalletAddressService) GetTransactions(walletAddress *models.WalletAddress, page, limit uint) (*scopes.PaginateModel, error) {
-	txs, err := service.GetTransactionsList(walletAddress.WalletAddress, walletAddress.Blockchain, page, limit)
+	totalItems, txs, err := service.GetTransactionsList(walletAddress.WalletAddress, walletAddress.Blockchain, page, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get transactions for wallet address %s: %w", walletAddress, err)
 	}
 
-	//// Serialize transactions to JSON
-	//txsJSON, err := json.Marshal(txs)
-	//if err != nil {
-	//	return nil, fmt.Errorf("failed to marshal transactions for wallet address %v: %w", walletAddress, err)
-	//}
-	//
-	//// Publish transactions to the queue
-	//err = Publisher.NewPublisher(job.LogQueue).Publish(txsJSON)
-	//if err != nil {
-	//	return nil, fmt.Errorf("failed to publish transactions for wallet address %v: %w", walletAddress, err)
-	//}
-
+	totalPages := int64(math.Ceil(float64(totalItems) / float64(limit)))
 	return &scopes.PaginateModel{
+		TotalItems:  totalItems,
+		TotalPages:  totalPages,
 		CurrentPage: page,
 		Limit:       limit,
 		Items:       &txs,
@@ -211,19 +202,19 @@ func (service *WalletAddressService) GetTransactions(walletAddress *models.Walle
 }
 
 func (service *WalletAddressService) HandleDeposits() error {
-	paginatedModel, err := service.GetActiveList()
+	paginatedModel, err := service.GetAllocatedList()
 	if err != nil {
 		return err
 	}
 
 	walletAddresses := paginatedModel.Items.(*[]*models.WalletAddress)
-
 	for _, walletAddress := range *walletAddresses {
-		txs, err := service.GetTransactionsList(walletAddress.WalletAddress, walletAddress.Blockchain, 0, 0)
+		totalItems, txs, err := service.GetTransactionsList(walletAddress.WalletAddress, walletAddress.Blockchain, 0, 0)
 		if err != nil {
 			return fmt.Errorf("failed to get transactions for wallet address %s: %w", walletAddress.WalletAddress, err)
 		}
 
+		fmt.Printf("transactions found : %d\n", totalItems)
 		for _, tx := range txs {
 			v := reflect.ValueOf(tx)
 			t := v.Type()

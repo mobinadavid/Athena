@@ -44,34 +44,49 @@ func NewBscscan(baseUrl string, page, limit uint) (*Bscscan, error) {
 	return bscscan, nil
 }
 
-func (b *Bscscan) FetchTransactions(walletAddress string) ([]models.Response, error) {
-	url := fmt.Sprintf("%s/api?module=account&action=txlist&page=%d&offset=%d&address=%s&apikey=%s", b.baseUrl, b.page, b.limit, walletAddress, b.apiKey)
+func (b *Bscscan) FetchTransactions(walletAddress string) (int64, []models.Response, error) {
+	url := fmt.Sprintf("%s/api?module=account&action=txlist&address=%s&apikey=%s", b.baseUrl, walletAddress, b.apiKey)
 
 	resp, err := b.apiClient.R().
 		Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("error making request to Bscscan: %w", err)
+		return 0, nil, fmt.Errorf("error making request to Bscscan: %w", err)
 	}
 
 	if resp.StatusCode() != 200 {
-		return nil, fmt.Errorf("API request failed with status %d", resp.StatusCode())
+		return 0, nil, fmt.Errorf("API request failed with status %d", resp.StatusCode())
 	}
 
 	var bscScanResponse models.BscScanResponse
 	err = json.Unmarshal(resp.Body(), &bscScanResponse)
 	if err != nil {
-		return nil, fmt.Errorf("error unmarshalling response: %w", err)
+		return 0, nil, fmt.Errorf("error unmarshalling response: %w", err)
 	}
 
 	if bscScanResponse.Status != "1" {
-		return nil, fmt.Errorf("API error: %s", bscScanResponse.Message)
+		return 0, nil, fmt.Errorf("API error: %s", bscScanResponse.Message)
 	}
 
-	// Parse transactions
+	totalItems := int64(len(bscScanResponse.Result))
+	startIndex := (b.page - 1) * b.limit
+	endIndex := b.page * b.limit
 
+	// Ensure startIndex and endIndex are within bounds
+	if startIndex > uint(len(bscScanResponse.Result)) {
+		startIndex = uint(len(bscScanResponse.Result))
+	}
+	if endIndex > uint(len(bscScanResponse.Result)) {
+		endIndex = uint(len(bscScanResponse.Result))
+	}
+	if startIndex == 0 && endIndex == 0 {
+		endIndex = uint(len(bscScanResponse.Result))
+	}
+
+	// Get the subset of data for the requested page
+	paginatedData := bscScanResponse.Result[startIndex:endIndex]
 	var transactions []models.Response
 
-	for _, tx := range bscScanResponse.Result {
+	for _, tx := range paginatedData {
 		response := models.Response{
 			BlockNumber:   tx["blockNumber"].(string),
 			Hash:          tx["hash"].(string),
@@ -87,5 +102,5 @@ func (b *Bscscan) FetchTransactions(walletAddress string) ([]models.Response, er
 		transactions = append(transactions, response)
 	}
 
-	return transactions, nil
+	return totalItems, transactions, nil
 }

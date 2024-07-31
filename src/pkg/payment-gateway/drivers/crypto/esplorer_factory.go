@@ -12,7 +12,7 @@ func (f *ExplorerFactory) CreateExplorer(blockchain *models.Blockchain, baseUrl 
 	case "ETH":
 		return NewEtherscan(baseUrl, page, limit)
 	case "TRX":
-		return NewTronscan(baseUrl)
+		return NewTronscan(baseUrl, page, limit)
 	case "BSC":
 		return NewBscscan(baseUrl, page, limit)
 	default:
