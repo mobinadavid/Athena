@@ -1,4 +1,4 @@
-package crypto
+package tronscan
 
 import (
 	"athena/src/config"
@@ -20,6 +20,7 @@ type Tronscan struct {
 func NewTronscan(baseUrl string, page, limit uint) (*Tronscan, error) {
 	configs := config.GetInstance()
 	requestTimeout, _ := strconv.Atoi(configs.Get("EXPLORER_REQUEST_TIMEOUT"))
+	maxRetry, _ := strconv.Atoi(configs.Get("GET_TRANSACTIONS_MAX_RETRY"))
 
 	tronscan := &Tronscan{
 		apiClient: resty.New(),
@@ -30,7 +31,7 @@ func NewTronscan(baseUrl string, page, limit uint) (*Tronscan, error) {
 
 	tronscan.apiClient.
 		SetHeader("Content-Type", "application/json").
-		SetTimeout(time.Duration(requestTimeout) * time.Second)
+		SetTimeout(time.Duration(requestTimeout) * time.Second).SetRetryCount(maxRetry).SetRetryWaitTime(1 * time.Second)
 
 	return tronscan, nil
 }

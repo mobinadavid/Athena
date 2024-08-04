@@ -1,4 +1,4 @@
-package crypto
+package bscscan
 
 import (
 	"athena/src/config"
@@ -23,6 +23,7 @@ type Bscscan struct {
 func NewBscscan(baseUrl string, page, limit uint) (*Bscscan, error) {
 	configs := config.GetInstance()
 	requestTimeout, _ := strconv.Atoi(configs.Get("EXPLORER_REQUEST_TIMEOUT"))
+	maxRetry, _ := strconv.Atoi(configs.Get("GET_TRANSACTIONS_MAX_RETRY"))
 
 	secrets, err := vault.GetInstance().GetVault().KVv2("kv-v2").Get(context.Background(), configs.Get("APP_NAME")+"/blockchain-explorer")
 	if err != nil {
@@ -39,7 +40,7 @@ func NewBscscan(baseUrl string, page, limit uint) (*Bscscan, error) {
 
 	bscscan.apiClient.
 		SetHeader("Content-Type", "application/json").
-		SetTimeout(time.Duration(requestTimeout) * time.Second)
+		SetTimeout(time.Duration(requestTimeout) * time.Second).SetRetryCount(maxRetry).SetRetryWaitTime(1 * time.Second)
 
 	return bscscan, nil
 }

@@ -2,7 +2,6 @@ package services
 
 import (
 	"athena/src/api/http/requests"
-	"athena/src/config"
 	"athena/src/database/scopes"
 	"athena/src/models"
 	"athena/src/pkg/payment-gateway/drivers/crypto"
@@ -12,8 +11,6 @@ import (
 	"github.com/google/uuid"
 	"math"
 	"reflect"
-	"strconv"
-	"time"
 )
 
 type IWalletAddressService interface {
@@ -161,17 +158,12 @@ func (service *WalletAddressService) GetTransactionsList(walletAddress string, b
 		return 0, nil, fmt.Errorf("error creating explorer for blockchain %s: %w", blockchain.NativeAsset, err)
 	}
 
-	maxRetry, _ := strconv.Atoi(config.GetInstance().Get("GET_TRANSACTIONS_MAX_RETRY"))
-	for i := 0; i < maxRetry; i++ {
-		totalItems, transactions, err := explorer.FetchTransactions(walletAddress)
-		if err == nil {
-			return totalItems, transactions, nil
-		}
-		fmt.Printf("Attempt %d: Error fetching transactions: %v\n", i+1, err)
-		time.Sleep(1 * time.Second)
+	totalItems, transactions, err := explorer.FetchTransactions(walletAddress)
+	if err == nil {
+		return totalItems, transactions, nil
 	}
 
-	return 0, nil, fmt.Errorf("error fetching transactions after %d attempts: %w", maxRetry, err)
+	return 0, nil, fmt.Errorf("error fetching transactions %w", err)
 }
 
 func (service *WalletAddressService) GetTransactions(walletAddress *models.WalletAddress, page, limit uint) (*scopes.PaginateModel, error) {
