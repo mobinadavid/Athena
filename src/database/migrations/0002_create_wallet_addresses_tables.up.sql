@@ -2,9 +2,9 @@ create table if not exists wallet_addresses
 (
     id               bigserial primary key,
     uuid             uuid default uuid_generate_v4(),
-    name             text not null,
-    wallet_address   text not null,
-    webhook_url      text not null,
+    name             varchar(255) not null,
+    wallet_address   varchar(255) not null,
+    webhook_url      varchar(255) not null,
     is_active        boolean default true,
     allocated_at     timestamp with time zone,
     created_at       timestamp with time zone,

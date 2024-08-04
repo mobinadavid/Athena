@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS blockchain_explorer_mappings
+CREATE TABLE IF NOT EXISTS blockchain_blockchain_explorer
 (
     blockchain_id    bigserial NOT NULL,
     blockchain_explorer_id      bigserial NOT NULL,
