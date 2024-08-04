@@ -65,11 +65,13 @@ func SeedBlockchain() {
 			NativeAsset: "BSC",
 			Name:        "Binance",
 		},
-		{IsActive: &isActive,
+		{
+			IsActive:    &isActive,
 			Title:       btc,
 			NativeAsset: "BTC",
 			Name:        "Bitcoin",
-		}}
+		},
+	}
 
 	var db = database.GetInstance()
 	for _, blockchain := range blockchains {
