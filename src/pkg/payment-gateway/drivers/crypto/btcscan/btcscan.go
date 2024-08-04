@@ -65,7 +65,7 @@ func (t *Btcscan) FetchTransactions(walletAddress string) (int64, []models.Respo
 			Hash:        fmt.Sprintf("%v", tx["hash"]),
 			Timestamp:   fmt.Sprintf("%v", tx["time"]),
 			//From:        fmt.Sprintf("%v", tx["inputs"].(map[string]interface{})["addr"]),
-			//		To:          fmt.Sprintf("%v", tx["out"].(map[string]interface{})["addr"]),
+			//To:          fmt.Sprintf("%v", tx["out"].(map[string]interface{})["addr"]),
 			Amount:     fmt.Sprintf("%v", tx["result"]),
 			Fee:        fmt.Sprintf("%v", tx["fee"]),
 			BlockChain: "BTC",

@@ -10,10 +10,11 @@ func SeedExplorer() {
 	var db = database.GetInstance()
 
 	// Retrieve the existing Blockchain records
-	var tronBlockchain, ethereumBlockchain, binanceBlockchain blockchainModel.Blockchain
+	var bitcoinBlockchain, tronBlockchain, ethereumBlockchain, binanceBlockchain blockchainModel.Blockchain
 	db.GetClient().Where("name = ?", "Tron").First(&tronBlockchain)
 	db.GetClient().Where("name = ?", "Ethereum").First(&ethereumBlockchain)
 	db.GetClient().Where("name = ?", "Binance").First(&binanceBlockchain)
+	db.GetClient().Where("name = ?", "Bitcoin").First(&bitcoinBlockchain)
 
 	// Seed the BlockchainExplorer records and associate them with the Blockchain records
 	isActive := true
@@ -40,6 +41,13 @@ func SeedExplorer() {
 			Name:        "bscscan",
 			IsDefault:   &isDefault,
 			Blockchains: []*blockchainModel.Blockchain{&binanceBlockchain},
+		},
+		{
+			IsActive:    &isActive,
+			BaseUrl:     "https://blockchain.info",
+			Name:        "blockchain.info",
+			IsDefault:   &isDefault,
+			Blockchains: []*blockchainModel.Blockchain{&bitcoinBlockchain},
 		},
 	}
 

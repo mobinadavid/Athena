@@ -36,6 +36,15 @@ func SeedBlockchain() {
 
 	}
 
+	titleBtc := map[string]string{
+		"en": "Bitcoin",
+		"fa": "بیت کوین",
+	}
+	btc, err := json.Marshal(titleBtc)
+	if err != nil {
+
+	}
+
 	isActive := true
 	blockchains := []*models.Blockchain{
 		{
@@ -56,7 +65,11 @@ func SeedBlockchain() {
 			NativeAsset: "BSC",
 			Name:        "Binance",
 		},
-	}
+		{IsActive: &isActive,
+			Title:       btc,
+			NativeAsset: "BTC",
+			Name:        "Bitcoin",
+		}}
 
 	var db = database.GetInstance()
 	for _, blockchain := range blockchains {

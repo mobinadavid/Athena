@@ -114,3 +114,5 @@
 {"level":"info","ts":"2024-08-04T14:29:55.039+0330","caller":"Driver/drivers.go:32","msg":"Broker Driver set correctly","timestamp":"2024-08-04T14:29:55.039+0330"}
 {"level":"info","ts":"2024-08-04T14:29:55.041+0330","caller":"rabbitmq/rabbitmq.go:61","msg":"RabbitMQ: Start Consume job: ","QueueName: ":"log-queue","timestamp":"2024-08-04T14:29:55.041+0330"}
 {"level":"info","ts":"2024-08-04T14:30:17.395+0330","caller":"rabbitmq/rabbitmq.go:149","msg":"RabbitMQ: Shutdown the RabbitMQ consumer:","QueueName: ":"log-queue","timestamp":"2024-08-04T14:30:17.395+0330"}
+{"level":"info","ts":"2024-08-04T14:54:06.455+0330","caller":"Driver/drivers.go:32","msg":"Broker Driver set correctly","timestamp":"2024-08-04T14:54:06.455+0330"}
+{"level":"info","ts":"2024-08-04T14:54:06.456+0330","caller":"rabbitmq/rabbitmq.go:61","msg":"RabbitMQ: Start Consume job: ","QueueName: ":"log-queue","timestamp":"2024-08-04T14:54:06.456+0330"}
