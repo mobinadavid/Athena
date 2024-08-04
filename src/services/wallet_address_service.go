@@ -54,25 +54,22 @@ func (service *WalletAddressService) AllocateWalletAddresses(request *requests.A
 		return nil, errors.New("invalid number of wallet address requested")
 	}
 
-	walletAddresses, err := service.IWalletAddressRepository.GetUnallocatedWalletAddress(request.Count)
+	blockchain, err := service.IBlockchainService.GetByName(request.Blockchain)
 	if err != nil {
 		return nil, err
 	}
 
-	// Filter wallet addresses based on the blockchain name
-	var filteredWalletAddresses []*models.WalletAddress
-	for _, walletAddress := range walletAddresses {
-		if walletAddress.Blockchain.Name == request.Blockchain {
-			filteredWalletAddresses = append(filteredWalletAddresses, walletAddress)
-		}
+	walletAddresses, err := service.IWalletAddressRepository.GetUnallocatedWalletAddress(request.Count, blockchain.ID)
+	if err != nil {
+		return nil, err
 	}
 
 	// Check if any addresses are found
-	if len(filteredWalletAddresses) == 0 {
+	if len(walletAddresses) == 0 {
 		return nil, errors.New("no wallet addresses found")
 	} else {
 		//Update to allocated
-		err := service.IWalletAddressRepository.UpdateWalletAddressToAllocated(filteredWalletAddresses)
+		err := service.IWalletAddressRepository.UpdateWalletAddressToAllocated(walletAddresses)
 		if err != nil {
 			return nil, err
 		}
@@ -80,7 +77,7 @@ func (service *WalletAddressService) AllocateWalletAddresses(request *requests.A
 
 	// Collect wallet address names
 	var walletAddressesName []string
-	for _, walletAddress := range filteredWalletAddresses {
+	for _, walletAddress := range walletAddresses {
 		walletAddressesName = append(walletAddressesName, walletAddress.WalletAddress)
 	}
 

@@ -21,6 +21,10 @@ func NewBtcscan(baseUrl string, page, limit uint) (*Btcscan, error) {
 	configs := config.GetInstance()
 	requestTimeout, _ := strconv.Atoi(configs.Get("EXPLORER_REQUEST_TIMEOUT"))
 	maxRetry, _ := strconv.Atoi(configs.Get("GET_TRANSACTIONS_MAX_RETRY"))
+	if limit == 0 && page == 0 {
+		limit = 100
+		page = 1
+	}
 
 	btcscan := &Btcscan{
 		apiClient: resty.New(),
@@ -57,18 +61,37 @@ func (t *Btcscan) FetchTransactions(walletAddress string) (int64, []models.Respo
 	}
 
 	totalItems := int64(btcScanResponse.TotalTransactions)
+
 	// Convert TronScanResponse to your Response type
 	var transactions []models.Response
 	for _, tx := range btcScanResponse.Txs {
+		inputs := tx["inputs"].([]interface{})
+		var fromAddr string
+
+		if len(inputs) > 0 {
+			input := inputs[0].(map[string]interface{})
+			prevOut := input["prev_out"].(map[string]interface{})
+			fromAddr = fmt.Sprintf("%v", prevOut["addr"])
+		}
+
+		outAddresses := tx["out"].([]interface{})
+		var toAddresses []string
+		for _, out := range outAddresses {
+			outMap := out.(map[string]interface{})
+			if addr, ok := outMap["addr"].(string); ok {
+				toAddresses = append(toAddresses, addr)
+			}
+		}
+
 		response := models.Response{
 			BlockNumber: fmt.Sprintf("%v", tx["block_height"]),
 			Hash:        fmt.Sprintf("%v", tx["hash"]),
 			Timestamp:   fmt.Sprintf("%v", tx["time"]),
-			//From:        fmt.Sprintf("%v", tx["inputs"].(map[string]interface{})["addr"]),
-			//To:          fmt.Sprintf("%v", tx["out"].(map[string]interface{})["addr"]),
-			Amount:     fmt.Sprintf("%v", tx["result"]),
-			Fee:        fmt.Sprintf("%v", tx["fee"]),
-			BlockChain: "BTC",
+			From:        fromAddr,
+			ToAddresses: toAddresses,
+			Amount:      fmt.Sprintf("%v", tx["result"]),
+			Fee:         fmt.Sprintf("%v", tx["fee"]),
+			BlockChain:  "BTC",
 		}
 		transactions = append(transactions, response)
 	}

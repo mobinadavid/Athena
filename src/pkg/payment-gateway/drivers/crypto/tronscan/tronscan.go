@@ -21,6 +21,10 @@ func NewTronscan(baseUrl string, page, limit uint) (*Tronscan, error) {
 	configs := config.GetInstance()
 	requestTimeout, _ := strconv.Atoi(configs.Get("EXPLORER_REQUEST_TIMEOUT"))
 	maxRetry, _ := strconv.Atoi(configs.Get("GET_TRANSACTIONS_MAX_RETRY"))
+	if limit == 0 && page == 0 {
+		limit = 100
+		page = 1
+	}
 
 	tronscan := &Tronscan{
 		apiClient: resty.New(),
@@ -60,12 +64,16 @@ func (t *Tronscan) FetchTransactions(walletAddress string) (int64, []models.Resp
 	// Convert TronScanResponse to your Response type
 	var transactions []models.Response
 	for _, tx := range tronScanResponse.Data {
+
+		var toAddresses []string
+		to := fmt.Sprintf("%v", tx["toAddress"])
+		toAddresses = append(toAddresses, to)
 		response := models.Response{
 			BlockNumber: fmt.Sprintf("%v", tx["block"]),
 			Hash:        fmt.Sprintf("%v", tx["hash"]),
 			Timestamp:   fmt.Sprintf("%v", tx["timestamp"]),
 			From:        fmt.Sprintf("%v", tx["ownerAddress"]),
-			To:          fmt.Sprintf("%v", tx["toAddress"]),
+			ToAddresses: toAddresses,
 			Gas:         fmt.Sprintf("%v", tx["cost"].(map[string]interface{})["energy_usage"]),
 			Amount:      fmt.Sprintf("%v", tx["amount"]),
 			Fee:         fmt.Sprintf("%v", tx["fee"]),

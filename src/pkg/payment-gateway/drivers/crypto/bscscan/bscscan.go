@@ -88,12 +88,17 @@ func (b *Bscscan) FetchTransactions(walletAddress string) (int64, []models.Respo
 	var transactions []models.Response
 
 	for _, tx := range paginatedData {
+
+		var toAddresses []string
+		to := fmt.Sprintf("%v", tx["to"])
+		toAddresses = append(toAddresses, to)
+
 		response := models.Response{
 			BlockNumber:   tx["blockNumber"].(string),
 			Hash:          tx["hash"].(string),
 			Timestamp:     tx["timeStamp"].(string),
 			From:          tx["from"].(string),
-			To:            tx["to"].(string),
+			ToAddresses:   toAddresses,
 			Gas:           tx["gas"].(string),
 			GasPrice:      tx["gasPrice"].(string),
 			Confirmations: tx["confirmations"].(string),

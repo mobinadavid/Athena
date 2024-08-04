@@ -20,7 +20,7 @@ type IWalletAddressRepository interface {
 	Delete(uuid *uuid.UUID) error
 	Update(uuid *uuid.UUID, req *models.WalletAddress) (*models.WalletAddress, error)
 	GetAllocatedList() ([]*models.WalletAddress, error)
-	GetUnallocatedWalletAddress(count int) ([]*models.WalletAddress, error)
+	GetUnallocatedWalletAddress(count int, blockchainId uint) ([]*models.WalletAddress, error)
 	UpdateWalletAddressToAllocated(walletAddresses []*models.WalletAddress) error
 }
 
@@ -147,11 +147,11 @@ func (repository *WalletAddressRepository) UpdateWalletAddressToAllocated(wallet
 	return nil
 }
 
-func (repository *WalletAddressRepository) GetUnallocatedWalletAddress(count int) ([]*models.WalletAddress, error) {
+func (repository *WalletAddressRepository) GetUnallocatedWalletAddress(count int, blockchainId uint) ([]*models.WalletAddress, error) {
 	var walletAddresses []*models.WalletAddress
-
 	// Use IsAllocated to filter records
-	result := repository.IDatabaseHandler.GetClient().Scopes(scopes.IsNotAllocated()).Preload("Blockchain").Limit(count)
+	result := repository.IDatabaseHandler.GetClient().Scopes(scopes.IsNotAllocated()).Preload("Blockchain").Where("blockchain_id = ?", blockchainId).
+		Limit(count)
 	if err := result.Find(&walletAddresses).Error; err != nil {
 		return nil, err
 	}
