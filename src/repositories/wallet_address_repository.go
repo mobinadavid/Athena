@@ -22,6 +22,8 @@ type IWalletAddressRepository interface {
 	GetAllocatedList() ([]*models.WalletAddress, error)
 	GetUnallocatedWalletAddress(count int, blockchainId uint) ([]*models.WalletAddress, error)
 	UpdateWalletAddressToAllocated(walletAddresses []*models.WalletAddress) error
+	TransactionsExist(txHash string) (bool, error)
+	AddTransactionToDeposits(transaction models.Response) error
 }
 
 type WalletAddressRepository struct {
@@ -150,8 +152,7 @@ func (repository *WalletAddressRepository) UpdateWalletAddressToAllocated(wallet
 func (repository *WalletAddressRepository) GetUnallocatedWalletAddress(count int, blockchainId uint) ([]*models.WalletAddress, error) {
 	var walletAddresses []*models.WalletAddress
 	// Use IsAllocated to filter records
-	result := repository.IDatabaseHandler.GetClient().Scopes(scopes.IsNotAllocated()).Preload("Blockchain").Where("blockchain_id = ?", blockchainId).
-		Limit(count)
+	result := repository.IDatabaseHandler.GetClient().Scopes(scopes.IsNotAllocated()).Preload("Blockchain").Where("blockchain_id = ?", blockchainId).Limit(count)
 	if err := result.Find(&walletAddresses).Error; err != nil {
 		return nil, err
 	}
@@ -170,4 +171,31 @@ func (repository *WalletAddressRepository) GetAllocatedList() ([]*models.WalletA
 	}
 
 	return walletAddress, nil
+}
+
+func (repository *WalletAddressRepository) TransactionsExist(txHash string) (bool, error) {
+	var count int64
+	result := repository.IDatabaseHandler.GetClient().
+		Model(&models.Deposits{}).
+		Where("hash = ?", txHash).
+		Count(&count)
+
+	if result.Error != nil {
+		return false, fmt.Errorf("failed to check if transaction exists: %s", result.Error.Error())
+	}
+
+	return count > 0, nil
+}
+
+func (repository *WalletAddressRepository) AddTransactionToDeposits(transaction models.Response) error {
+	newTransaction := &models.Deposits{
+		Hash: transaction.Hash,
+	}
+
+	// Insert the new transaction into the deposits table
+	result := repository.IDatabaseHandler.GetClient().Create(newTransaction)
+	if result.Error != nil {
+		return fmt.Errorf("failed to insert transaction into deposits table: %s", result.Error.Error())
+	}
+	return nil
 }

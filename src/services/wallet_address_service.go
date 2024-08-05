@@ -6,11 +6,13 @@ import (
 	"athena/src/models"
 	"athena/src/pkg/payment-gateway/drivers/crypto"
 	"athena/src/repositories"
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"math"
-	"reflect"
+	"net/http"
 )
 
 type IWalletAddressService interface {
@@ -67,6 +69,8 @@ func (service *WalletAddressService) AllocateWalletAddresses(request *requests.A
 	// Check if any addresses are found
 	if len(walletAddresses) == 0 {
 		return nil, errors.New("no wallet addresses found")
+	} else if len(walletAddresses) != request.Count {
+		return nil, errors.New("not enough wallet addresses found")
 	} else {
 		//Update to allocated
 		err := service.IWalletAddressRepository.UpdateWalletAddressToAllocated(walletAddresses)
@@ -194,16 +198,53 @@ func (service *WalletAddressService) HandleDeposits() error {
 
 		fmt.Printf("transactions found : %d\n", totalItems)
 		for _, tx := range txs {
-			v := reflect.ValueOf(tx)
-			t := v.Type()
-
-			for i := 0; i < v.NumField(); i++ {
-				field := t.Field(i)
-				value := v.Field(i).Interface()
-				fmt.Printf("  %s: %v\n", field.Name, value)
+			exists, err := service.IWalletAddressRepository.TransactionsExist(tx.Hash)
+			if err != nil {
+				return fmt.Errorf("failed to check transaction existence: %w", err)
 			}
-			fmt.Println()
+
+			if !exists {
+				if err := sendToWebhook(tx, walletAddress.WebhookURL); err != nil {
+					fmt.Printf("failed to send transaction to webhook: %v\n", err)
+				}
+
+				// Add transaction to deposits table
+				err = service.IWalletAddressRepository.AddTransactionToDeposits(tx)
+				if err != nil {
+					fmt.Printf("failed to add transaction to deposits: %v\n", err)
+				}
+			}
 		}
+
 	}
+	return nil
+}
+
+func sendToWebhook(tx interface{}, webhookUrl string) error {
+	// Marshal the transaction data to JSON
+	txData, err := json.Marshal(tx)
+	if err != nil {
+		return fmt.Errorf("failed to marshal transaction data: %w", err)
+	}
+
+	// Create a POST request
+	req, err := http.NewRequest("POST", webhookUrl, bytes.NewBuffer(txData))
+	if err != nil {
+		return fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	// Send the request
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send HTTP request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("webhook returned non-200 status: %d", resp.StatusCode)
+	}
+
 	return nil
 }

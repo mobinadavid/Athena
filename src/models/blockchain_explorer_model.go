@@ -16,7 +16,7 @@ type BlockchainExplorer struct {
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"deleted_at"`
-	Blockchains []*Blockchain  `gorm:"many2many:blockchain_explorer_mappings;"`
+	Blockchains []*Blockchain  `gorm:"many2many:blockchain_blockchain_explorer;"`
 }
 
 // TableName sets the table name of the model
