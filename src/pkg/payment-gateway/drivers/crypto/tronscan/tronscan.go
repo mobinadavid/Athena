@@ -74,9 +74,8 @@ func (t *Tronscan) FetchTransactions(walletAddress string) (int64, []models.Resp
 			Timestamp:   fmt.Sprintf("%v", tx["timestamp"]),
 			From:        fmt.Sprintf("%v", tx["ownerAddress"]),
 			ToAddresses: toAddresses,
-			Gas:         fmt.Sprintf("%v", tx["cost"].(map[string]interface{})["energy_usage"]),
 			Amount:      fmt.Sprintf("%v", tx["amount"]),
-			Fee:         fmt.Sprintf("%v", tx["fee"]),
+			Fee:         fmt.Sprintf("%v", tx["cost"].(map[string]interface{})["fee"]),
 			IsConfirmed: tx["confirmed"].(bool),
 			BlockChain:  "TRX",
 		}

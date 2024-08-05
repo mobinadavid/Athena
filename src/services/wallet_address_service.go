@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"math"
 	"net/http"
+	"time"
 )
 
 type IWalletAddressService interface {
@@ -29,6 +30,7 @@ type IWalletAddressService interface {
 
 type WalletAddressService struct {
 	IWalletAddressRepository   repositories.IWalletAddressRepository
+	IDepositService            IDepositService
 	IBlockchainService         IBlockChainService
 	IBlockchainExplorerService IBlockchainExplorerService
 }
@@ -198,18 +200,19 @@ func (service *WalletAddressService) HandleDeposits() error {
 
 		fmt.Printf("transactions found : %d\n", totalItems)
 		for _, tx := range txs {
-			exists, err := service.IWalletAddressRepository.TransactionsExist(tx.Hash)
+			exists, err := service.IDepositService.TransactionsExist(tx.Hash)
 			if err != nil {
 				return fmt.Errorf("failed to check transaction existence: %w", err)
 			}
 
 			if !exists {
+				//filter the tx
 				if err := sendToWebhook(tx, walletAddress.WebhookURL); err != nil {
 					fmt.Printf("failed to send transaction to webhook: %v\n", err)
 				}
 
 				// Add transaction to deposits table
-				err = service.IWalletAddressRepository.AddTransactionToDeposits(tx)
+				err = service.IDepositService.AddTransactionToDeposits(tx)
 				if err != nil {
 					fmt.Printf("failed to add transaction to deposits: %v\n", err)
 				}
@@ -234,11 +237,25 @@ func sendToWebhook(tx interface{}, webhookUrl string) error {
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	// Send the request
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	// Create an HTTP client with a timeout
+	client := &http.Client{Timeout: 10 * time.Second}
+
+	// Retry logic
+	var resp *http.Response
+	for i := 0; i < 3; i++ {
+		resp, err = client.Do(req)
+		if err == nil && resp.StatusCode == http.StatusOK {
+			break
+		}
+		if err != nil {
+			fmt.Printf("failed to send HTTP request, attempt %d: %v\n", i+1, err)
+		} else {
+			fmt.Printf("webhook returned status %d, attempt %d\n", resp.StatusCode, i+1)
+		}
+		time.Sleep(2 * time.Second) // wait before retrying
+	}
 	if err != nil {
-		return fmt.Errorf("failed to send HTTP request: %w", err)
+		return fmt.Errorf("failed to send HTTP request after retries: %w", err)
 	}
 	defer resp.Body.Close()
 

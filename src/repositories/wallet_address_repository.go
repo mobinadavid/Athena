@@ -22,8 +22,6 @@ type IWalletAddressRepository interface {
 	GetAllocatedList() ([]*models.WalletAddress, error)
 	GetUnallocatedWalletAddress(count int, blockchainId uint) ([]*models.WalletAddress, error)
 	UpdateWalletAddressToAllocated(walletAddresses []*models.WalletAddress) error
-	TransactionsExist(txHash string) (bool, error)
-	AddTransactionToDeposits(transaction models.Response) error
 }
 
 type WalletAddressRepository struct {
@@ -171,31 +169,4 @@ func (repository *WalletAddressRepository) GetAllocatedList() ([]*models.WalletA
 	}
 
 	return walletAddress, nil
-}
-
-func (repository *WalletAddressRepository) TransactionsExist(txHash string) (bool, error) {
-	var count int64
-	result := repository.IDatabaseHandler.GetClient().
-		Model(&models.Deposits{}).
-		Where("hash = ?", txHash).
-		Count(&count)
-
-	if result.Error != nil {
-		return false, fmt.Errorf("failed to check if transaction exists: %s", result.Error.Error())
-	}
-
-	return count > 0, nil
-}
-
-func (repository *WalletAddressRepository) AddTransactionToDeposits(transaction models.Response) error {
-	newTransaction := &models.Deposits{
-		Hash: transaction.Hash,
-	}
-
-	// Insert the new transaction into the deposits table
-	result := repository.IDatabaseHandler.GetClient().Create(newTransaction)
-	if result.Error != nil {
-		return fmt.Errorf("failed to insert transaction into deposits table: %s", result.Error.Error())
-	}
-	return nil
 }

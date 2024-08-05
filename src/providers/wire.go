@@ -21,6 +21,7 @@ func GetContainer() *Container {
 		BlockchainContainer,
 		ExplorerContainer,
 		WalletAddressContainer,
+		DepositContainer,
 		wire.Struct(new(Container), "*"),
 	)
 

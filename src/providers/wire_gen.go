@@ -21,7 +21,9 @@ func GetContainer() *Container {
 	walletAddressRepository := ProvideWalletAddressRepository(databaseDatabase)
 	blockchainExplorerRepository := ProvideBlockchainExplorerRepository(databaseDatabase)
 	blockchainExplorerService := ProvideBlockchainExplorerService(blockchainExplorerRepository, blockchainService)
-	walletAddressService := ProvideWalletAddressService(walletAddressRepository, blockchainService, blockchainExplorerService)
+	depositRepository := ProvideDepositRepository(databaseDatabase)
+	depositService := ProvideDepositService(depositRepository)
+	walletAddressService := ProvideWalletAddressService(walletAddressRepository, blockchainService, blockchainExplorerService, depositService)
 	walletAddressController := ProvideWalletAddressController(walletAddressService)
 	blockchainExplorerController := ProvideBlockchainExplorerController(blockchainExplorerService)
 	container := &Container{
