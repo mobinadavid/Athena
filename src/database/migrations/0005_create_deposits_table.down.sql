@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS deposists;
+DROP TABLE IF EXISTS deposits;

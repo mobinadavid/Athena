@@ -1,6 +1,6 @@
 package models
 
-type Response struct {
+type Transaction struct {
 	BlockNumber   string   `json:"blockNumber"`
 	Hash          string   `json:"hash"`
 	Timestamp     string   `json:"timeStamp"`

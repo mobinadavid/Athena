@@ -9,6 +9,7 @@ package providers
 import (
 	"athena/src/api/http/controllers"
 	"athena/src/database"
+	"athena/src/services"
 )
 
 // Injectors from wire.go:
@@ -21,15 +22,16 @@ func GetContainer() *Container {
 	walletAddressRepository := ProvideWalletAddressRepository(databaseDatabase)
 	blockchainExplorerRepository := ProvideBlockchainExplorerRepository(databaseDatabase)
 	blockchainExplorerService := ProvideBlockchainExplorerService(blockchainExplorerRepository, blockchainService)
-	depositRepository := ProvideDepositRepository(databaseDatabase)
-	depositService := ProvideDepositService(depositRepository)
-	walletAddressService := ProvideWalletAddressService(walletAddressRepository, blockchainService, blockchainExplorerService, depositService)
+	walletAddressService := ProvideWalletAddressService(walletAddressRepository, blockchainService, blockchainExplorerService)
 	walletAddressController := ProvideWalletAddressController(walletAddressService)
 	blockchainExplorerController := ProvideBlockchainExplorerController(blockchainExplorerService)
+	depositRepository := ProvideDepositRepository(databaseDatabase)
+	depositService := ProvideDepositService(depositRepository, walletAddressService)
 	container := &Container{
 		BlockchainController:         blockchainController,
 		WalletAddressController:      walletAddressController,
 		BlockchainExplorerController: blockchainExplorerController,
+		DepositService:               depositService,
 	}
 	return container
 }
@@ -40,4 +42,5 @@ type Container struct {
 	BlockchainController         *controllers.BlockchainController
 	WalletAddressController      *controllers.WalletAddressController
 	BlockchainExplorerController *controllers.BlockchainExplorerController
+	DepositService               *services.DepositService
 }

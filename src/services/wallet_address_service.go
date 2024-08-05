@@ -6,14 +6,10 @@ import (
 	"athena/src/models"
 	"athena/src/pkg/payment-gateway/drivers/crypto"
 	"athena/src/repositories"
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"math"
-	"net/http"
-	"time"
 )
 
 type IWalletAddressService interface {
@@ -22,15 +18,14 @@ type IWalletAddressService interface {
 	GetByUuid(uuid *uuid.UUID) (*models.WalletAddress, error)
 	Delete(uuid *uuid.UUID) error
 	Update(uuid *uuid.UUID, request *requests.CreateWalletAddressRequest) (*models.WalletAddress, error)
-	HandleDeposits() error
 	GetAllocatedList() (*scopes.PaginateModel, error)
 	GetTransactions(address *models.WalletAddress, page, limit uint) (*scopes.PaginateModel, error)
+	GetTransactionsList(walletAddress string, blockchain *models.Blockchain, page, limit uint) (int64, []*models.Transaction, error)
 	AllocateWalletAddresses(request *requests.AllocateWalletAddress) ([]string, error)
 }
 
 type WalletAddressService struct {
 	IWalletAddressRepository   repositories.IWalletAddressRepository
-	IDepositService            IDepositService
 	IBlockchainService         IBlockChainService
 	IBlockchainExplorerService IBlockchainExplorerService
 }
@@ -149,7 +144,7 @@ func (service *WalletAddressService) Update(uuid *uuid.UUID, request *requests.C
 }
 
 // GetTransactionsList fetches transactions from the specified blockchain explorer
-func (service *WalletAddressService) GetTransactionsList(walletAddress string, blockchain *models.Blockchain, page, limit uint) (int64, []models.Response, error) {
+func (service *WalletAddressService) GetTransactionsList(walletAddress string, blockchain *models.Blockchain, page, limit uint) (int64, []*models.Transaction, error) {
 	explorerBaseUrl, err := service.IBlockchainExplorerService.GetExplorerByBlockchain(blockchain)
 	if err != nil {
 		return 0, nil, fmt.Errorf("error finding explorer for blockchain %s: %w", blockchain.NativeAsset, err)
@@ -183,85 +178,4 @@ func (service *WalletAddressService) GetTransactions(walletAddress *models.Walle
 		Limit:       limit,
 		Items:       &txs,
 	}, nil
-}
-
-func (service *WalletAddressService) HandleDeposits() error {
-	paginatedModel, err := service.GetAllocatedList()
-	if err != nil {
-		return err
-	}
-
-	walletAddresses := paginatedModel.Items.(*[]*models.WalletAddress)
-	for _, walletAddress := range *walletAddresses {
-		totalItems, txs, err := service.GetTransactionsList(walletAddress.WalletAddress, walletAddress.Blockchain, 0, 0)
-		if err != nil {
-			return fmt.Errorf("failed to get transactions for wallet address %s: %w", walletAddress.WalletAddress, err)
-		}
-
-		fmt.Printf("transactions found : %d\n", totalItems)
-		for _, tx := range txs {
-			exists, err := service.IDepositService.TransactionsExist(tx.Hash)
-			if err != nil {
-				return fmt.Errorf("failed to check transaction existence: %w", err)
-			}
-
-			if !exists {
-				//filter the tx
-				if err := sendToWebhook(tx, walletAddress.WebhookURL); err != nil {
-					fmt.Printf("failed to send transaction to webhook: %v\n", err)
-				}
-
-				// Add transaction to deposits table
-				err = service.IDepositService.AddTransactionToDeposits(tx)
-				if err != nil {
-					fmt.Printf("failed to add transaction to deposits: %v\n", err)
-				}
-			}
-		}
-
-	}
-	return nil
-}
-
-func sendToWebhook(tx interface{}, webhookUrl string) error {
-	// Marshal the transaction data to JSON
-	txData, err := json.Marshal(tx)
-	if err != nil {
-		return fmt.Errorf("failed to marshal transaction data: %w", err)
-	}
-
-	// Create a POST request
-	req, err := http.NewRequest("POST", webhookUrl, bytes.NewBuffer(txData))
-	if err != nil {
-		return fmt.Errorf("failed to create HTTP request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	// Create an HTTP client with a timeout
-	client := &http.Client{Timeout: 10 * time.Second}
-
-	// Retry logic
-	var resp *http.Response
-	for i := 0; i < 3; i++ {
-		resp, err = client.Do(req)
-		if err == nil && resp.StatusCode == http.StatusOK {
-			break
-		}
-		if err != nil {
-			fmt.Printf("failed to send HTTP request, attempt %d: %v\n", i+1, err)
-		} else {
-			fmt.Printf("webhook returned status %d, attempt %d\n", resp.StatusCode, i+1)
-		}
-		time.Sleep(2 * time.Second) // wait before retrying
-	}
-	if err != nil {
-		return fmt.Errorf("failed to send HTTP request after retries: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("webhook returned non-200 status: %d", resp.StatusCode)
-	}
-
-	return nil
 }

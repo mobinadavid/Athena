@@ -20,8 +20,9 @@ func ProvideDepositRepository(db *database.Database) *repositories.DepositReposi
 	}
 }
 
-func ProvideDepositService(repository repositories.IDepositRepository) *services.DepositService {
+func ProvideDepositService(repository repositories.IDepositRepository, walletAddressService services.IWalletAddressService) *services.DepositService {
 	return &services.DepositService{
-		IDepositRepository: repository,
+		IDepositRepository:    repository,
+		IWalletAddressService: walletAddressService,
 	}
 }

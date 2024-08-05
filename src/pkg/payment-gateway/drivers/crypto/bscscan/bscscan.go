@@ -45,7 +45,7 @@ func NewBscscan(baseUrl string, page, limit uint) (*Bscscan, error) {
 	return bscscan, nil
 }
 
-func (b *Bscscan) FetchTransactions(walletAddress string) (int64, []models.Response, error) {
+func (b *Bscscan) FetchTransactions(walletAddress string) (int64, []*models.Transaction, error) {
 	url := fmt.Sprintf("%s/api?module=account&action=txlist&address=%s&apikey=%s", b.baseUrl, walletAddress, b.apiKey)
 
 	resp, err := b.apiClient.R().
@@ -85,7 +85,7 @@ func (b *Bscscan) FetchTransactions(walletAddress string) (int64, []models.Respo
 
 	// Get the subset of data for the requested page
 	paginatedData := bscScanResponse.Result[startIndex:endIndex]
-	var transactions []models.Response
+	var transactions []*models.Transaction
 
 	for _, tx := range paginatedData {
 
@@ -93,7 +93,7 @@ func (b *Bscscan) FetchTransactions(walletAddress string) (int64, []models.Respo
 		to := fmt.Sprintf("%v", tx["to"])
 		toAddresses = append(toAddresses, to)
 
-		response := models.Response{
+		response := &models.Transaction{
 			BlockNumber:   tx["blockNumber"].(string),
 			Hash:          tx["hash"].(string),
 			Timestamp:     tx["timeStamp"].(string),

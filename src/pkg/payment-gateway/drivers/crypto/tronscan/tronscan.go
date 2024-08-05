@@ -40,7 +40,7 @@ func NewTronscan(baseUrl string, page, limit uint) (*Tronscan, error) {
 	return tronscan, nil
 }
 
-func (t *Tronscan) FetchTransactions(walletAddress string) (int64, []models.Response, error) {
+func (t *Tronscan) FetchTransactions(walletAddress string) (int64, []*models.Transaction, error) {
 	start := (t.page - 1) * t.limit
 	url := fmt.Sprintf("%s/api/transaction?start=%d&limit=%d&address=%s", t.baseUrl, start, t.limit, walletAddress)
 	resp, err := t.apiClient.R().
@@ -61,14 +61,14 @@ func (t *Tronscan) FetchTransactions(walletAddress string) (int64, []models.Resp
 	}
 
 	totalItems := int64(tronScanResponse.Total)
-	// Convert TronScanResponse to your Response type
-	var transactions []models.Response
+	// Convert TronScanResponse to your Transaction type
+	var transactions []*models.Transaction
 	for _, tx := range tronScanResponse.Data {
 
 		var toAddresses []string
 		to := fmt.Sprintf("%v", tx["toAddress"])
 		toAddresses = append(toAddresses, to)
-		response := models.Response{
+		response := &models.Transaction{
 			BlockNumber: fmt.Sprintf("%v", tx["block"]),
 			Hash:        fmt.Sprintf("%v", tx["hash"]),
 			Timestamp:   fmt.Sprintf("%v", tx["timestamp"]),

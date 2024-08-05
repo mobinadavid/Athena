@@ -4,15 +4,17 @@
 package providers
 
 import (
-	blockchain_controller "athena/src/api/http/controllers"
+	"athena/src/api/http/controllers"
 	"athena/src/database"
+	"athena/src/services"
 	"github.com/google/wire"
 )
 
 type Container struct {
-	BlockchainController         *blockchain_controller.BlockchainController
-	WalletAddressController      *blockchain_controller.WalletAddressController
-	BlockchainExplorerController *blockchain_controller.BlockchainExplorerController
+	BlockchainController         *controllers.BlockchainController
+	WalletAddressController      *controllers.WalletAddressController
+	BlockchainExplorerController *controllers.BlockchainExplorerController
+	DepositService               *services.DepositService
 }
 
 func GetContainer() *Container {

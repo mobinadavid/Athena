@@ -22,9 +22,8 @@ func ProvideWalletAddressController(service services.IWalletAddressService) *con
 	}
 }
 
-func ProvideWalletAddressService(repository repositories.IWalletAddressRepository, blockchainService services.IBlockChainService, explorerService services.IBlockchainExplorerService, depositService services.IDepositService) *services.WalletAddressService {
+func ProvideWalletAddressService(repository repositories.IWalletAddressRepository, blockchainService services.IBlockChainService, explorerService services.IBlockchainExplorerService) *services.WalletAddressService {
 	return &services.WalletAddressService{
-		IDepositService:            depositService,
 		IWalletAddressRepository:   repository,
 		IBlockchainService:         blockchainService,
 		IBlockchainExplorerService: explorerService,

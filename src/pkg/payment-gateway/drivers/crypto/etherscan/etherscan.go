@@ -45,7 +45,7 @@ func NewEtherscan(baseUrl string, page, limit uint) (*Etherscan, error) {
 	return etherscan, nil
 }
 
-func (e *Etherscan) FetchTransactions(walletAddress string) (int64, []models.Response, error) {
+func (e *Etherscan) FetchTransactions(walletAddress string) (int64, []*models.Transaction, error) {
 	url := fmt.Sprintf("%s/api?module=account&action=txlist&address=%s&apikey=%s", e.baseUrl, walletAddress, e.apiKey)
 
 	resp, err := e.apiClient.R().
@@ -86,14 +86,14 @@ func (e *Etherscan) FetchTransactions(walletAddress string) (int64, []models.Res
 	// Get the subset of data for the requested page
 	paginatedData := etherScanResponse.Result[startIndex:endIndex]
 
-	var transactions []models.Response
+	var transactions []*models.Transaction
 	for _, tx := range paginatedData {
 
 		var toAddresses []string
 		to := fmt.Sprintf("%v", tx["to"])
 		toAddresses = append(toAddresses, to)
 
-		response := models.Response{
+		response := &models.Transaction{
 			BlockNumber:   tx["blockNumber"].(string),
 			Hash:          tx["hash"].(string),
 			Timestamp:     tx["timeStamp"].(string),

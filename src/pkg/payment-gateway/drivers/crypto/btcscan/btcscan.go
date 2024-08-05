@@ -40,7 +40,7 @@ func NewBtcscan(baseUrl string, page, limit uint) (*Btcscan, error) {
 	return btcscan, nil
 }
 
-func (t *Btcscan) FetchTransactions(walletAddress string) (int64, []models.Response, error) {
+func (t *Btcscan) FetchTransactions(walletAddress string) (int64, []*models.Transaction, error) {
 	offset := (t.page - 1) * t.limit
 	url := fmt.Sprintf("%s/rawaddr/%s?limit=%d&offset=%d", t.baseUrl, walletAddress, t.limit, offset)
 	resp, err := t.apiClient.R().
@@ -62,8 +62,8 @@ func (t *Btcscan) FetchTransactions(walletAddress string) (int64, []models.Respo
 
 	totalItems := int64(btcScanResponse.TotalTransactions)
 
-	// Convert TronScanResponse to your Response type
-	var transactions []models.Response
+	// Convert TronScanResponse to your Transaction type
+	var transactions []*models.Transaction
 	for _, tx := range btcScanResponse.Txs {
 		inputs := tx["inputs"].([]interface{})
 		var fromAddr string
@@ -83,7 +83,7 @@ func (t *Btcscan) FetchTransactions(walletAddress string) (int64, []models.Respo
 			}
 		}
 
-		response := models.Response{
+		response := &models.Transaction{
 			BlockNumber: fmt.Sprintf("%v", tx["block_height"]),
 			Hash:        fmt.Sprintf("%v", tx["hash"]),
 			Timestamp:   fmt.Sprintf("%v", tx["time"]),
