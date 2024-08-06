@@ -12,6 +12,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type IWalletAddressService interface {
@@ -168,6 +169,14 @@ func (service *WalletAddressService) GetTransactionsList(walletAddress string, b
 }
 
 func (service *WalletAddressService) GetTransactions(walletAddress *models.WalletAddress, page, limit uint) (*scopes.PaginateModel, error) {
+	isAllocated, err := service.IWalletAddressRepository.IsAllocated(walletAddress)
+	if err != nil {
+		return nil, err
+	}
+	if !isAllocated {
+		return nil, fmt.Errorf("wallet address %s is not allocated or active ", walletAddress.WalletAddress)
+	}
+
 	txs, err := service.GetTransactionsList(walletAddress.WalletAddress, walletAddress.Blockchain)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get transactions for wallet address %s: %w", walletAddress, err)
@@ -201,12 +210,19 @@ func (service *WalletAddressService) FilterTransactions(txs []*models.Transactio
 				return nil, fmt.Errorf("error parsing Confirmations: %w", err)
 			}
 
-			if confirmations > 12 && tx.From == strings.ToLower(walletAddress.WalletAddress) {
+			// Parse the timestamp (custom format)
+			timeLayout := "Jan-02-2006 03:04:05 PM UTC"
+			transactionTime, err := time.Parse(timeLayout, tx.Timestamp)
+			if err != nil {
+				fmt.Printf("Error parsing timestamp: %v\n", err)
+
+			}
+
+			if confirmations > 12 && tx.From == strings.ToLower(walletAddress.WalletAddress) && transactionTime.After(walletAddress.AllocatedAt) {
 				amount, err := strconv.ParseFloat(tx.Amount, 64)
 				if err == nil {
 					tx.Amount = fmt.Sprintf("%f", amount*1e-18)
 				}
-
 				// Calculate fee based on gasUsed and gasPrice
 				gasUsed, err := strconv.ParseFloat(tx.GasUsed, 64)
 				if err != nil {
@@ -236,7 +252,14 @@ func (service *WalletAddressService) FilterTransactions(txs []*models.Transactio
 		}
 	case "TRX":
 		for _, tx := range txs {
-			if tx.IsConfirmed && tx.From == walletAddress.WalletAddress {
+			timeLayout := "Jan-02-2006 03:04:05 PM UTC"
+			transactionTime, err := time.Parse(timeLayout, tx.Timestamp)
+			if err != nil {
+				fmt.Printf("Error parsing timestamp: %v\n", err)
+
+			}
+
+			if tx.IsConfirmed && tx.From == walletAddress.WalletAddress && transactionTime.After(walletAddress.AllocatedAt) {
 				amount, err := strconv.ParseFloat(tx.Amount, 64)
 				if err == nil {
 					tx.Amount = fmt.Sprintf("%f", amount*1e-6)
@@ -262,17 +285,28 @@ func (service *WalletAddressService) FilterTransactions(txs []*models.Transactio
 		}
 	case "BTC":
 		for _, tx := range txs {
-			filteredTxs = append(filteredTxs, &models.Response{
-				BlockNumber: tx.BlockNumber,
-				Hash:        tx.Hash,
-				Timestamp:   tx.Timestamp,
-				From:        tx.From,
-				ToAddresses: tx.ToAddresses,
-				Fee:         tx.Fee,
-				IsConfirmed: tx.IsConfirmed,
-				Value:       tx.Amount,
-				BlockChain:  tx.BlockChain,
-			})
+			// Parse the second timestamp (custom format)
+			timeLayout := "Jan-02-2006 03:04:05 PM UTC"
+			transactionTime, err := time.Parse(timeLayout, tx.Timestamp)
+			if err != nil {
+				fmt.Printf("Error parsing timestamp: %v\n", err)
+
+			}
+
+			if tx.IsConfirmed && tx.From == walletAddress.WalletAddress && transactionTime.After(walletAddress.AllocatedAt) {
+				filteredTxs = append(filteredTxs, &models.Response{
+					BlockNumber: tx.BlockNumber,
+					Hash:        tx.Hash,
+					Timestamp:   tx.Timestamp,
+					From:        tx.From,
+					ToAddresses: tx.ToAddresses,
+					Fee:         tx.Fee,
+					IsConfirmed: tx.IsConfirmed,
+					Value:       tx.Amount,
+					BlockChain:  tx.BlockChain,
+				})
+			}
+
 		}
 	default:
 		return nil, fmt.Errorf("Unsupported blockchain: %s\n", walletAddress.Blockchain.Name)

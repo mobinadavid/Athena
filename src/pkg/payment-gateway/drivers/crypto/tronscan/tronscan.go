@@ -64,9 +64,9 @@ func (t *Tronscan) FetchTransactions(walletAddress string) ([]*models.Transactio
 			// Convert milliseconds to seconds
 			timestampSecs := int64(timestampMs / 1000)
 			// Convert Unix timestamp to time.Time
-			t := time.Unix(timestampSecs, 0)
+			utcTime := time.Unix(timestampSecs, 0).UTC()
 			// Format time.Time to a string
-			timestampStr = t.Format(time.RFC3339)
+			timestampStr = utcTime.Format("Jan-02-2006 03:04:05 PM UTC")
 		} else {
 			// Handle the case where timestamp is not a float64
 			timestampStr = fmt.Sprintf("%v", tx["timestamp"])

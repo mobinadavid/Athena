@@ -80,7 +80,8 @@ func (t *Btcscan) FetchTransactions(walletAddress string) ([]*models.Transaction
 		}
 
 		// Format timestamp to a readable date/time string
-		timestampStr := time.Unix(timestampInt, 0).Format(time.RFC3339)
+		utcTime := time.Unix(timestampInt, 0).UTC()
+		timestampStr := utcTime.Format("Jan-02-2006 03:04:05 PM UTC")
 
 		response := &models.Transaction{
 			BlockNumber: fmt.Sprintf("%v", tx["block_height"]),

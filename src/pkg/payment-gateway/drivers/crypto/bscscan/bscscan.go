@@ -84,8 +84,11 @@ func (b *Bscscan) FetchTransactions(walletAddress string) ([]*models.Transaction
 			return nil, fmt.Errorf("invalid timestamp format")
 		}
 
-		// Convert Unix timestamp to readable format
-		timestampStr := time.Unix(timestampInt, 0).Format(time.RFC3339)
+		// Convert Unix timestamp to UTC time
+		utcTime := time.Unix(timestampInt, 0).UTC()
+
+		// Format into desired format
+		timestampStr := utcTime.Format("Jan-02-2006 03:04:05 PM UTC")
 
 		response := &models.Transaction{
 			BlockNumber:   tx["blockNumber"].(string),
