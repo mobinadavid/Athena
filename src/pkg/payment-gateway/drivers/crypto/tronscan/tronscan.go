@@ -12,25 +12,17 @@ import (
 
 type Tronscan struct {
 	apiClient *resty.Client
-	page      uint
-	limit     uint
 	baseUrl   string
 }
 
-func NewTronscan(baseUrl string, page, limit uint) (*Tronscan, error) {
+func NewTronscan(baseUrl string) (*Tronscan, error) {
 	configs := config.GetInstance()
 	requestTimeout, _ := strconv.Atoi(configs.Get("EXPLORER_REQUEST_TIMEOUT"))
 	maxRetry, _ := strconv.Atoi(configs.Get("GET_TRANSACTIONS_MAX_RETRY"))
-	if limit == 0 && page == 0 {
-		limit = 100
-		page = 1
-	}
 
 	tronscan := &Tronscan{
 		apiClient: resty.New(),
 		baseUrl:   baseUrl,
-		page:      page,
-		limit:     limit,
 	}
 
 	tronscan.apiClient.
@@ -40,27 +32,25 @@ func NewTronscan(baseUrl string, page, limit uint) (*Tronscan, error) {
 	return tronscan, nil
 }
 
-func (t *Tronscan) FetchTransactions(walletAddress string) (int64, []*models.Transaction, error) {
-	start := (t.page - 1) * t.limit
-	url := fmt.Sprintf("%s/api/transaction?start=%d&limit=%d&address=%s", t.baseUrl, start, t.limit, walletAddress)
+func (t *Tronscan) FetchTransactions(walletAddress string) ([]*models.Transaction, error) {
+	url := fmt.Sprintf("%s/api/transaction?start=%d&limit=%d&address=%s", t.baseUrl, 0, 100, walletAddress)
 	resp, err := t.apiClient.R().
 		Get(url)
 
 	if err != nil {
-		return 0, nil, fmt.Errorf("error making request to Tronscan: %w", err)
+		return nil, fmt.Errorf("error making request to Tronscan: %w", err)
 	}
 
 	if resp.StatusCode() != 200 {
-		return 0, nil, fmt.Errorf("API request failed with status %d", resp.StatusCode())
+		return nil, fmt.Errorf("API request failed with status %d", resp.StatusCode())
 	}
 
 	var tronScanResponse models.TronScanResponse
 	err = json.Unmarshal(resp.Body(), &tronScanResponse)
 	if err != nil {
-		return 0, nil, fmt.Errorf("error unmarshalling response: %w", err)
+		return nil, fmt.Errorf("error unmarshalling response: %w", err)
 	}
 
-	totalItems := int64(tronScanResponse.Total)
 	// Convert TronScanResponse to your Transaction type
 	var transactions []*models.Transaction
 	for _, tx := range tronScanResponse.Data {
@@ -68,19 +58,49 @@ func (t *Tronscan) FetchTransactions(walletAddress string) (int64, []*models.Tra
 		var toAddresses []string
 		to := fmt.Sprintf("%v", tx["toAddress"])
 		toAddresses = append(toAddresses, to)
+
+		var timestampStr string
+		if timestampMs, ok := tx["timestamp"].(float64); ok {
+			// Convert milliseconds to seconds
+			timestampSecs := int64(timestampMs / 1000)
+			// Convert Unix timestamp to time.Time
+			t := time.Unix(timestampSecs, 0)
+			// Format time.Time to a string
+			timestampStr = t.Format(time.RFC3339)
+		} else {
+			// Handle the case where timestamp is not a float64
+			timestampStr = fmt.Sprintf("%v", tx["timestamp"])
+		}
+
+		var feeStr string
+		if cost, ok := tx["cost"].(map[string]interface{}); ok {
+			if fee, ok := cost["fee"].(float64); ok {
+				feeStr = fmt.Sprintf("%.0f", fee) // Adjust precision as needed
+			} else {
+				feeStr = fmt.Sprintf("%v", cost["fee"])
+			}
+		}
+
+		var blockstr string
+		if block, ok := tx["block"].(float64); ok {
+			blockstr = fmt.Sprintf("%.0f", block)
+		} else {
+			blockstr = fmt.Sprintf("%v", tx["block"])
+		}
+
 		response := &models.Transaction{
-			BlockNumber: fmt.Sprintf("%v", tx["block"]),
+			BlockNumber: blockstr,
 			Hash:        fmt.Sprintf("%v", tx["hash"]),
-			Timestamp:   fmt.Sprintf("%v", tx["timestamp"]),
+			Timestamp:   timestampStr,
 			From:        fmt.Sprintf("%v", tx["ownerAddress"]),
 			ToAddresses: toAddresses,
 			Amount:      fmt.Sprintf("%v", tx["amount"]),
-			Fee:         fmt.Sprintf("%v", tx["cost"].(map[string]interface{})["fee"]),
+			Fee:         feeStr,
 			IsConfirmed: tx["confirmed"].(bool),
 			BlockChain:  "TRX",
 		}
 		transactions = append(transactions, response)
 	}
 
-	return totalItems, transactions, nil
+	return transactions, nil
 }

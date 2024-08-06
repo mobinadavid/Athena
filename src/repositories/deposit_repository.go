@@ -8,7 +8,7 @@ import (
 
 type IDepositRepository interface {
 	TransactionsExist(txHash string) (bool, error)
-	AddTransactionToDeposits(transaction *models.Transaction) error
+	AddTransactionToDeposits(transaction *models.Response) error
 }
 
 type DepositRepository struct {
@@ -29,7 +29,7 @@ func (repository *DepositRepository) TransactionsExist(txHash string) (bool, err
 	return count > 0, nil
 }
 
-func (repository *DepositRepository) AddTransactionToDeposits(transaction *models.Transaction) error {
+func (repository *DepositRepository) AddTransactionToDeposits(transaction *models.Response) error {
 	newTransaction := &models.Deposits{
 		Hash: transaction.Hash,
 	}

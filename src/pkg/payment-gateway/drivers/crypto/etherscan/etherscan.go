@@ -16,11 +16,9 @@ type Etherscan struct {
 	apiClient *resty.Client
 	apiKey    string
 	baseUrl   string
-	page      uint
-	limit     uint
 }
 
-func NewEtherscan(baseUrl string, page, limit uint) (*Etherscan, error) {
+func NewEtherscan(baseUrl string) (*Etherscan, error) {
 	configs := config.GetInstance()
 	requestTimeout, _ := strconv.Atoi(configs.Get("EXPLORER_REQUEST_TIMEOUT"))
 	maxRetry, _ := strconv.Atoi(configs.Get("GET_TRANSACTIONS_MAX_RETRY"))
@@ -34,8 +32,6 @@ func NewEtherscan(baseUrl string, page, limit uint) (*Etherscan, error) {
 		apiClient: resty.New(),
 		apiKey:    secrets.Data["ethApiKey"].(string),
 		baseUrl:   baseUrl,
-		page:      page,
-		limit:     limit,
 	}
 
 	etherscan.apiClient.
@@ -45,61 +41,57 @@ func NewEtherscan(baseUrl string, page, limit uint) (*Etherscan, error) {
 	return etherscan, nil
 }
 
-func (e *Etherscan) FetchTransactions(walletAddress string) (int64, []*models.Transaction, error) {
+func (e *Etherscan) FetchTransactions(walletAddress string) ([]*models.Transaction, error) {
 	url := fmt.Sprintf("%s/api?module=account&action=txlist&address=%s&apikey=%s", e.baseUrl, walletAddress, e.apiKey)
 
 	resp, err := e.apiClient.R().
 		Get(url)
 	if err != nil {
-		return 0, nil, fmt.Errorf("error making request to Etherscan: %w", err)
+		return nil, fmt.Errorf("error making request to Etherscan: %w", err)
 	}
 
 	if resp.StatusCode() != 200 {
-		return 0, nil, fmt.Errorf("API request failed with status %d", resp.StatusCode())
+		return nil, fmt.Errorf("API request failed with status %d", resp.StatusCode())
 	}
 
 	var etherScanResponse models.EtherScanResponse
 	err = json.Unmarshal(resp.Body(), &etherScanResponse)
 	if err != nil {
-		return 0, nil, fmt.Errorf("error unmarshalling response: %w", err)
+		return nil, fmt.Errorf("error unmarshalling response: %w", err)
 	}
 
 	if etherScanResponse.Status != "1" {
-		return 0, nil, fmt.Errorf("API error: %s", etherScanResponse.Message)
+		return nil, fmt.Errorf("API error: %s", etherScanResponse.Message)
 	}
-	// Parse transactions
-	startIndex := (e.page - 1) * e.limit
-	endIndex := e.page * e.limit
-	totalItems := int64(len(etherScanResponse.Result))
-
-	// Ensure startIndex and endIndex are within bounds
-	if startIndex > uint(len(etherScanResponse.Result)) {
-		startIndex = uint(len(etherScanResponse.Result))
-	}
-	if endIndex > uint(len(etherScanResponse.Result)) {
-		endIndex = uint(len(etherScanResponse.Result))
-	}
-	if startIndex == 0 && endIndex == 0 {
-		endIndex = uint(len(etherScanResponse.Result))
-	}
-
-	// Get the subset of data for the requested page
-	paginatedData := etherScanResponse.Result[startIndex:endIndex]
 
 	var transactions []*models.Transaction
-	for _, tx := range paginatedData {
-
+	for _, tx := range etherScanResponse.Result {
 		var toAddresses []string
 		to := fmt.Sprintf("%v", tx["to"])
 		toAddresses = append(toAddresses, to)
 
+		var timestampInt int64
+		if timestamp, ok := tx["timeStamp"].(string); ok {
+			// Convert timestamp to int64
+			var err error
+			timestampInt, err = strconv.ParseInt(timestamp, 10, 64)
+			if err != nil {
+				return nil, fmt.Errorf("error parsing timestamp: %w", err)
+			}
+		} else {
+			return nil, fmt.Errorf("invalid timestamp format")
+		}
+
+		// Convert Unix timestamp to readable format
+		timestampStr := time.Unix(timestampInt, 0).Format(time.RFC3339)
+
 		response := &models.Transaction{
 			BlockNumber:   tx["blockNumber"].(string),
 			Hash:          tx["hash"].(string),
-			Timestamp:     tx["timeStamp"].(string),
+			Timestamp:     timestampStr,
 			From:          tx["from"].(string),
 			ToAddresses:   toAddresses,
-			Gas:           tx["gas"].(string),
+			GasUsed:       tx["gasUsed"].(string),
 			GasPrice:      tx["gasPrice"].(string),
 			Confirmations: tx["confirmations"].(string),
 			Amount:        tx["value"].(string),
@@ -108,5 +100,5 @@ func (e *Etherscan) FetchTransactions(walletAddress string) (int64, []*models.Tr
 		transactions = append(transactions, response)
 	}
 
-	return totalItems, transactions, nil
+	return transactions, nil
 }

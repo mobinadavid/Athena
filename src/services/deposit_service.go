@@ -7,13 +7,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 )
 
 type IDepositService interface {
 	TransactionsExist(txHash string) (bool, error)
-	AddTransactionToDeposits(transaction models.Transaction) error
+	AddTransactionToDeposits(transaction *models.Response) error
 	HandleDeposits() error
 }
 
@@ -27,26 +26,29 @@ func (service *DepositService) TransactionsExist(txHash string) (bool, error) {
 
 }
 
-func (service *DepositService) AddTransactionToDeposits(transaction *models.Transaction) error {
+func (service *DepositService) AddTransactionToDeposits(transaction *models.Response) error {
 	return service.IDepositRepository.AddTransactionToDeposits(transaction)
 
 }
 
 func (service *DepositService) HandleDeposits() error {
-	paginatedModel, err := service.IWalletAddressService.GetAllocatedList()
+	allocatedList, err := service.IWalletAddressService.GetAllocatedList()
 	if err != nil {
 		return err
 	}
 
-	walletAddresses := paginatedModel.Items.(*[]*models.WalletAddress)
+	walletAddresses := allocatedList.Items.(*[]*models.WalletAddress)
 	for _, walletAddress := range *walletAddresses {
-		totalItems, txs, err := service.IWalletAddressService.GetTransactionsList(walletAddress.WalletAddress, walletAddress.Blockchain, 0, 0)
+		transactions, err := service.IWalletAddressService.GetTransactionsList(walletAddress.WalletAddress, walletAddress.Blockchain)
 		if err != nil {
 			return fmt.Errorf("failed to get transactions for wallet address %s: %w", walletAddress.WalletAddress, err)
 		}
 
-		fmt.Printf("transactions found : %d\n", totalItems)
-		filteredTxs := filterTransactions(txs, walletAddress)
+		filteredTxs, err := service.IWalletAddressService.FilterTransactions(transactions, walletAddress)
+		if err != nil {
+			return fmt.Errorf("failed to filter transactions for wallet address %s: %w", walletAddress.WalletAddress, err)
+		}
+
 		for _, tx := range filteredTxs {
 			exists, err := service.IDepositRepository.TransactionsExist(tx.Hash)
 			if err != nil {
@@ -111,34 +113,4 @@ func sendToWebhook(tx interface{}, webhookUrl string) error {
 	}
 
 	return nil
-}
-
-func filterTransactions(txs []*models.Transaction, walletAddress *models.WalletAddress) []*models.Transaction {
-	filteredTxs := []*models.Transaction{}
-	for _, tx := range txs {
-		switch walletAddress.Blockchain.NativeAsset {
-		case "ETH":
-			// Filter criteria for Ethereum
-			if tx.IsConfirmed && tx.From == walletAddress.WalletAddress {
-				amount, err := strconv.ParseFloat(tx.Amount, 64)
-				if err == nil {
-					tx.Amount = fmt.Sprintf("%f", amount*1e-18)
-					filteredTxs = append(filteredTxs, tx)
-				}
-			}
-		case "TRX":
-			// Filter criteria for Tron
-			if tx.IsConfirmed && tx.From == walletAddress.WalletAddress {
-				amount, err := strconv.ParseFloat(tx.Amount, 64)
-				if err == nil {
-					tx.Amount = fmt.Sprintf("%f", amount*1e-6)
-					filteredTxs = append(filteredTxs, tx)
-				}
-			}
-		// Add cases for other blockchains as needed
-		default:
-			fmt.Printf("Unsupported blockchain: %s\n", walletAddress.Blockchain.Name)
-		}
-	}
-	return filteredTxs
 }

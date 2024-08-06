@@ -6,7 +6,7 @@ type Transaction struct {
 	Timestamp     string   `json:"timeStamp"`
 	From          string   `json:"from"`
 	ToAddresses   []string `json:"to"`
-	Gas           string   `json:"gas"`
+	GasUsed       string   `json:"gasUsed"`
 	GasPrice      string   `json:"gasPrice"`
 	Fee           string   `json:"fee"`
 	IsConfirmed   bool     `json:"is_confirmed"`

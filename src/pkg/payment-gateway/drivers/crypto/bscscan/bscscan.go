@@ -16,11 +16,9 @@ type Bscscan struct {
 	apiClient *resty.Client
 	apiKey    string
 	baseUrl   string
-	page      uint
-	limit     uint
 }
 
-func NewBscscan(baseUrl string, page, limit uint) (*Bscscan, error) {
+func NewBscscan(baseUrl string) (*Bscscan, error) {
 	configs := config.GetInstance()
 	requestTimeout, _ := strconv.Atoi(configs.Get("EXPLORER_REQUEST_TIMEOUT"))
 	maxRetry, _ := strconv.Atoi(configs.Get("GET_TRANSACTIONS_MAX_RETRY"))
@@ -34,8 +32,6 @@ func NewBscscan(baseUrl string, page, limit uint) (*Bscscan, error) {
 		apiClient: resty.New(),
 		apiKey:    secrets.Data["bscApiKey"].(string),
 		baseUrl:   baseUrl,
-		page:      page,
-		limit:     limit,
 	}
 
 	bscscan.apiClient.
@@ -45,61 +41,59 @@ func NewBscscan(baseUrl string, page, limit uint) (*Bscscan, error) {
 	return bscscan, nil
 }
 
-func (b *Bscscan) FetchTransactions(walletAddress string) (int64, []*models.Transaction, error) {
+func (b *Bscscan) FetchTransactions(walletAddress string) ([]*models.Transaction, error) {
 	url := fmt.Sprintf("%s/api?module=account&action=txlist&address=%s&apikey=%s", b.baseUrl, walletAddress, b.apiKey)
 
 	resp, err := b.apiClient.R().
 		Get(url)
 	if err != nil {
-		return 0, nil, fmt.Errorf("error making request to Bscscan: %w", err)
+		return nil, fmt.Errorf("error making request to Bscscan: %w", err)
 	}
 
 	if resp.StatusCode() != 200 {
-		return 0, nil, fmt.Errorf("API request failed with status %d", resp.StatusCode())
+		return nil, fmt.Errorf("API request failed with status %d", resp.StatusCode())
 	}
 
 	var bscScanResponse models.BscScanResponse
 	err = json.Unmarshal(resp.Body(), &bscScanResponse)
 	if err != nil {
-		return 0, nil, fmt.Errorf("error unmarshalling response: %w", err)
+		return nil, fmt.Errorf("error unmarshalling response: %w", err)
 	}
 
 	if bscScanResponse.Status != "1" {
-		return 0, nil, fmt.Errorf("API error: %s", bscScanResponse.Message)
+		return nil, fmt.Errorf("API error: %s", bscScanResponse.Message)
 	}
 
-	totalItems := int64(len(bscScanResponse.Result))
-	startIndex := (b.page - 1) * b.limit
-	endIndex := b.page * b.limit
-
-	// Ensure startIndex and endIndex are within bounds
-	if startIndex > uint(len(bscScanResponse.Result)) {
-		startIndex = uint(len(bscScanResponse.Result))
-	}
-	if endIndex > uint(len(bscScanResponse.Result)) {
-		endIndex = uint(len(bscScanResponse.Result))
-	}
-	if startIndex == 0 && endIndex == 0 {
-		endIndex = uint(len(bscScanResponse.Result))
-	}
-
-	// Get the subset of data for the requested page
-	paginatedData := bscScanResponse.Result[startIndex:endIndex]
 	var transactions []*models.Transaction
 
-	for _, tx := range paginatedData {
+	for _, tx := range bscScanResponse.Result {
 
 		var toAddresses []string
 		to := fmt.Sprintf("%v", tx["to"])
 		toAddresses = append(toAddresses, to)
 
+		var timestampInt int64
+		if timestamp, ok := tx["timeStamp"].(string); ok {
+			// Convert timestamp to int64
+			var err error
+			timestampInt, err = strconv.ParseInt(timestamp, 10, 64)
+			if err != nil {
+				return nil, fmt.Errorf("error parsing timestamp: %w", err)
+			}
+		} else {
+			return nil, fmt.Errorf("invalid timestamp format")
+		}
+
+		// Convert Unix timestamp to readable format
+		timestampStr := time.Unix(timestampInt, 0).Format(time.RFC3339)
+
 		response := &models.Transaction{
 			BlockNumber:   tx["blockNumber"].(string),
 			Hash:          tx["hash"].(string),
-			Timestamp:     tx["timeStamp"].(string),
+			Timestamp:     timestampStr,
 			From:          tx["from"].(string),
 			ToAddresses:   toAddresses,
-			Gas:           tx["gas"].(string),
+			GasUsed:       tx["gasUsed"].(string),
 			GasPrice:      tx["gasPrice"].(string),
 			Confirmations: tx["confirmations"].(string),
 			Amount:        tx["value"].(string),
@@ -108,5 +102,5 @@ func (b *Bscscan) FetchTransactions(walletAddress string) (int64, []*models.Tran
 		transactions = append(transactions, response)
 	}
 
-	return totalItems, transactions, nil
+	return transactions, nil
 }

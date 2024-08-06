@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"math"
+	"strconv"
+	"strings"
 )
 
 type IWalletAddressService interface {
@@ -20,8 +22,9 @@ type IWalletAddressService interface {
 	Update(uuid *uuid.UUID, request *requests.CreateWalletAddressRequest) (*models.WalletAddress, error)
 	GetAllocatedList() (*scopes.PaginateModel, error)
 	GetTransactions(address *models.WalletAddress, page, limit uint) (*scopes.PaginateModel, error)
-	GetTransactionsList(walletAddress string, blockchain *models.Blockchain, page, limit uint) (int64, []*models.Transaction, error)
+	GetTransactionsList(walletAddress string, blockchain *models.Blockchain) ([]*models.Transaction, error)
 	AllocateWalletAddresses(request *requests.AllocateWalletAddress) ([]string, error)
+	FilterTransactions(txs []*models.Transaction, walletAddress *models.WalletAddress) ([]*models.Response, error)
 }
 
 type WalletAddressService struct {
@@ -144,38 +147,137 @@ func (service *WalletAddressService) Update(uuid *uuid.UUID, request *requests.C
 }
 
 // GetTransactionsList fetches transactions from the specified blockchain explorer
-func (service *WalletAddressService) GetTransactionsList(walletAddress string, blockchain *models.Blockchain, page, limit uint) (int64, []*models.Transaction, error) {
+func (service *WalletAddressService) GetTransactionsList(walletAddress string, blockchain *models.Blockchain) ([]*models.Transaction, error) {
 	explorerBaseUrl, err := service.IBlockchainExplorerService.GetExplorerByBlockchain(blockchain)
 	if err != nil {
-		return 0, nil, fmt.Errorf("error finding explorer for blockchain %s: %w", blockchain.NativeAsset, err)
+		return nil, fmt.Errorf("error finding explorer for blockchain %s: %w", blockchain.NativeAsset, err)
 	}
 
 	explorerFactory := &crypto.ExplorerFactory{}
-	explorer, err := explorerFactory.CreateExplorer(blockchain, explorerBaseUrl.BaseUrl, page, limit)
+	explorer, err := explorerFactory.CreateExplorer(blockchain, explorerBaseUrl.BaseUrl)
 	if err != nil {
-		return 0, nil, fmt.Errorf("error creating explorer for blockchain %s: %w", blockchain.NativeAsset, err)
+		return nil, fmt.Errorf("error creating explorer for blockchain %s: %w", blockchain.NativeAsset, err)
 	}
 
-	totalItems, transactions, err := explorer.FetchTransactions(walletAddress)
+	transactions, err := explorer.FetchTransactions(walletAddress)
 	if err == nil {
-		return totalItems, transactions, nil
+		return transactions, nil
 	}
 
-	return 0, nil, fmt.Errorf("error fetching transactions %w", err)
+	return nil, fmt.Errorf("error fetching transactions %w", err)
 }
 
 func (service *WalletAddressService) GetTransactions(walletAddress *models.WalletAddress, page, limit uint) (*scopes.PaginateModel, error) {
-	totalItems, txs, err := service.GetTransactionsList(walletAddress.WalletAddress, walletAddress.Blockchain, page, limit)
+	txs, err := service.GetTransactionsList(walletAddress.WalletAddress, walletAddress.Blockchain)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get transactions for wallet address %s: %w", walletAddress, err)
 	}
 
+	filteredTxs, err := service.FilterTransactions(txs, walletAddress)
+	if err != nil {
+		return nil, fmt.Errorf("failed to filter transactions for wallet address %s: %w", walletAddress, err)
+	}
+
+	totalItems := int64(len(filteredTxs))
 	totalPages := int64(math.Ceil(float64(totalItems) / float64(limit)))
 	return &scopes.PaginateModel{
 		TotalItems:  totalItems,
 		TotalPages:  totalPages,
 		CurrentPage: page,
 		Limit:       limit,
-		Items:       &txs,
+		Items:       &filteredTxs,
 	}, nil
+}
+
+func (service *WalletAddressService) FilterTransactions(txs []*models.Transaction, walletAddress *models.WalletAddress) ([]*models.Response, error) {
+	filteredTxs := []*models.Response{}
+
+	switch walletAddress.Blockchain.NativeAsset {
+	case "ETH", "BSC":
+		for _, tx := range txs {
+			//convert confirmations to int
+			confirmations, err := strconv.Atoi(tx.Confirmations)
+			if err != nil {
+				return nil, fmt.Errorf("error parsing Confirmations: %w", err)
+			}
+
+			if confirmations > 12 && tx.From == strings.ToLower(walletAddress.WalletAddress) {
+				amount, err := strconv.ParseFloat(tx.Amount, 64)
+				if err == nil {
+					tx.Amount = fmt.Sprintf("%f", amount*1e-18)
+				}
+
+				// Calculate fee based on gasUsed and gasPrice
+				gasUsed, err := strconv.ParseFloat(tx.GasUsed, 64)
+				if err != nil {
+					return nil, fmt.Errorf("error parsing GasUsed: %w", err)
+				}
+
+				gasPrice, err := strconv.ParseFloat(tx.GasPrice, 64)
+				if err != nil {
+					return nil, fmt.Errorf("error parsing GasPrice: %w", err)
+				}
+
+				fee := gasUsed * gasPrice * 1e-18
+				tx.Fee = fmt.Sprintf("%f", fee)
+
+				filteredTxs = append(filteredTxs, &models.Response{
+					BlockNumber: tx.BlockNumber,
+					Hash:        tx.Hash,
+					Timestamp:   tx.Timestamp,
+					From:        tx.From,
+					ToAddresses: tx.ToAddresses,
+					Fee:         tx.Fee,
+					IsConfirmed: true,
+					Value:       tx.Amount,
+					BlockChain:  tx.BlockChain,
+				})
+			}
+		}
+	case "TRX":
+		for _, tx := range txs {
+			if tx.IsConfirmed && tx.From == walletAddress.WalletAddress {
+				amount, err := strconv.ParseFloat(tx.Amount, 64)
+				if err == nil {
+					tx.Amount = fmt.Sprintf("%f", amount*1e-6)
+				}
+
+				fee, err := strconv.ParseFloat(tx.Fee, 64)
+				if err == nil {
+					tx.Fee = fmt.Sprintf("%f", fee*1e-6)
+				}
+
+				filteredTxs = append(filteredTxs, &models.Response{
+					BlockNumber: tx.BlockNumber,
+					Hash:        tx.Hash,
+					Timestamp:   tx.Timestamp,
+					From:        tx.From,
+					ToAddresses: tx.ToAddresses,
+					Fee:         tx.Fee,
+					IsConfirmed: tx.IsConfirmed,
+					Value:       tx.Amount,
+					BlockChain:  tx.BlockChain,
+				})
+			}
+		}
+	case "BTC":
+		for _, tx := range txs {
+			filteredTxs = append(filteredTxs, &models.Response{
+				BlockNumber: tx.BlockNumber,
+				Hash:        tx.Hash,
+				Timestamp:   tx.Timestamp,
+				From:        tx.From,
+				ToAddresses: tx.ToAddresses,
+				Fee:         tx.Fee,
+				IsConfirmed: tx.IsConfirmed,
+				Value:       tx.Amount,
+				BlockChain:  tx.BlockChain,
+			})
+		}
+	default:
+		return nil, fmt.Errorf("Unsupported blockchain: %s\n", walletAddress.Blockchain.Name)
+
+	}
+
+	return filteredTxs, nil
 }
