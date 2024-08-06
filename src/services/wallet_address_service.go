@@ -187,14 +187,19 @@ func (service *WalletAddressService) GetTransactions(walletAddress *models.Walle
 		return nil, fmt.Errorf("failed to filter transactions for wallet address %s: %w", walletAddress, err)
 	}
 
+	//paginating transactions
+	start := (page - 1) * limit
+	end := start + limit
+	paginatedItems := filteredTxs[start:end]
 	totalItems := int64(len(filteredTxs))
 	totalPages := int64(math.Ceil(float64(totalItems) / float64(limit)))
+
 	return &scopes.PaginateModel{
 		TotalItems:  totalItems,
 		TotalPages:  totalPages,
 		CurrentPage: page,
 		Limit:       limit,
-		Items:       &filteredTxs,
+		Items:       &paginatedItems,
 	}, nil
 }
 
@@ -291,6 +296,11 @@ func (service *WalletAddressService) FilterTransactions(txs []*models.Transactio
 			if err != nil {
 				fmt.Printf("Error parsing timestamp: %v\n", err)
 
+			}
+
+			fee, err := strconv.ParseFloat(tx.Fee, 64)
+			if err == nil {
+				tx.Fee = fmt.Sprintf("%f", fee*1e-8)
 			}
 
 			if tx.IsConfirmed && tx.From == walletAddress.WalletAddress && transactionTime.After(walletAddress.AllocatedAt) {

@@ -1,12 +1,14 @@
 package services
 
 import (
+	"athena/src/config"
 	"athena/src/models"
 	"athena/src/repositories"
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"net/http"
+	"github.com/go-resty/resty/v2"
+	"strconv"
 	"time"
 )
 
@@ -79,37 +81,28 @@ func sendToWebhook(tx interface{}, webhookUrl string) error {
 		return fmt.Errorf("failed to marshal transaction data: %w", err)
 	}
 
-	// Create a POST request
-	req, err := http.NewRequest("POST", webhookUrl, bytes.NewBuffer(txData))
+	configs := config.GetInstance()
+	maxRetry, _ := strconv.Atoi(configs.Get("SENT_TO_WEBHOOK_MAX_RETRY"))
+
+	// Create a Resty client with a timeout
+	client := resty.New().
+		SetTimeout(10 * time.Second).
+		SetRetryCount(maxRetry).
+		SetRetryWaitTime(2 * time.Second).
+		SetRetryMaxWaitTime(2 * time.Second)
+
+	// Send a POST request
+	resp, err := client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(bytes.NewBuffer(txData)).
+		Post(webhookUrl)
+
 	if err != nil {
-		return fmt.Errorf("failed to create HTTP request: %w", err)
+		return fmt.Errorf("failed to send HTTP request: %w", err)
 	}
-	req.Header.Set("Content-Type", "application/json")
 
-	// Create an HTTP client with a timeout
-	client := &http.Client{Timeout: 10 * time.Second}
-
-	// Retry logic
-	var resp *http.Response
-	for i := 0; i < 3; i++ {
-		resp, err = client.Do(req)
-		if err == nil && resp.StatusCode == http.StatusOK {
-			break
-		}
-		if err != nil {
-			fmt.Printf("failed to send HTTP request, attempt %d: %v\n", i+1, err)
-		} else {
-			fmt.Printf("webhook returned status %d, attempt %d\n", resp.StatusCode, i+1)
-		}
-		time.Sleep(2 * time.Second) // wait before retrying
-	}
-	if err != nil {
-		return fmt.Errorf("failed to send HTTP request after retries: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("webhook returned non-200 status: %d", resp.StatusCode)
+	if resp.StatusCode() != 200 {
+		return fmt.Errorf("webhook returned non-200 status: %d", resp.StatusCode())
 	}
 
 	return nil
