@@ -60,10 +60,6 @@ func (e *Etherscan) FetchTransactions(walletAddress string) ([]*models.Transacti
 		return nil, fmt.Errorf("error unmarshalling response: %w", err)
 	}
 
-	if etherScanResponse.Status != "1" {
-		return nil, fmt.Errorf("API error: %s", etherScanResponse.Message)
-	}
-
 	var transactions []*models.Transaction
 	for _, tx := range etherScanResponse.Result {
 		var toAddresses []string

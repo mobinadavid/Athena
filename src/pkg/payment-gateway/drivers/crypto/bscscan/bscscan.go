@@ -60,10 +60,6 @@ func (b *Bscscan) FetchTransactions(walletAddress string) ([]*models.Transaction
 		return nil, fmt.Errorf("error unmarshalling response: %w", err)
 	}
 
-	if bscScanResponse.Status != "1" {
-		return nil, fmt.Errorf("API error: %s", bscScanResponse.Message)
-	}
-
 	var transactions []*models.Transaction
 
 	for _, tx := range bscScanResponse.Result {
