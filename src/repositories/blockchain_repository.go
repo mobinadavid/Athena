@@ -28,7 +28,7 @@ type BlockchainRepository struct {
 func (repository *BlockchainRepository) GetList(params *scopes.QueryBuilderModel) ([]*models.Blockchain, int64, error) {
 	var blockchains []*models.Blockchain
 	var count int64
-	query := repository.IDatabaseHandler.GetClient().Preload("WalletAddresses").Preload("BlockchainExplorers").Model(&models.Blockchain{})
+	query := repository.IDatabaseHandler.GetClient().Preload("BlockchainExplorers").Model(&models.Blockchain{})
 
 	validFilters := utils.GetStructFieldNames(models.Blockchain{})
 	namingStrategy := schema.NamingStrategy{}
