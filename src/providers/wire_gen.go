@@ -25,12 +25,15 @@ func GetContainer() *Container {
 	walletAddressService := ProvideWalletAddressService(walletAddressRepository, blockchainService, blockchainExplorerService)
 	walletAddressController := ProvideWalletAddressController(walletAddressService)
 	blockchainExplorerController := ProvideBlockchainExplorerController(blockchainExplorerService)
+	iIpgService := ProvideIpgService()
+	ipgController := ProvideIpgController(iIpgService)
 	depositRepository := ProvideDepositRepository(databaseDatabase)
 	depositService := ProvideDepositService(depositRepository, walletAddressService)
 	container := &Container{
 		BlockchainController:         blockchainController,
 		WalletAddressController:      walletAddressController,
 		BlockchainExplorerController: blockchainExplorerController,
+		IpgController:                ipgController,
 		DepositService:               depositService,
 	}
 	return container
@@ -42,5 +45,6 @@ type Container struct {
 	BlockchainController         *controllers.BlockchainController
 	WalletAddressController      *controllers.WalletAddressController
 	BlockchainExplorerController *controllers.BlockchainExplorerController
+	IpgController                *controllers.IpgController
 	DepositService               *services.DepositService
 }

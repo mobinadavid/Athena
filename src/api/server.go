@@ -88,6 +88,7 @@ func initServer() error {
 		routes.BlockchainRouter(v1)
 		routes.WalletAddressRouter(v1)
 		routes.BlockchainExplorerRouter(v1)
+		routes.IpgRouter(v1)
 
 	}
 	// Run App.

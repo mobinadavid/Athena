@@ -14,6 +14,7 @@ type Container struct {
 	BlockchainController         *controllers.BlockchainController
 	WalletAddressController      *controllers.WalletAddressController
 	BlockchainExplorerController *controllers.BlockchainExplorerController
+	IpgController                *controllers.IpgController
 	DepositService               *services.DepositService
 }
 
@@ -24,6 +25,7 @@ func GetContainer() *Container {
 		ExplorerContainer,
 		WalletAddressContainer,
 		DepositContainer,
+		IpgContainer,
 		wire.Struct(new(Container), "*"),
 	)
 
