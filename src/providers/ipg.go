@@ -9,6 +9,7 @@ import (
 var IpgContainer = wire.NewSet(
 	ProvideIpgController,
 	ProvideIpgService,
+	wire.Bind(new(services.IIpgService), new(*services.IpgService)),
 )
 
 func ProvideIpgController(service services.IIpgService) *controllers.IpgController {
@@ -17,6 +18,8 @@ func ProvideIpgController(service services.IIpgService) *controllers.IpgControll
 	}
 }
 
-func ProvideIpgService() services.IIpgService {
-	return &services.IpgService{}
+func ProvideIpgService(igpService services.IIGPService) *services.IpgService {
+	return &services.IpgService{
+		IIGPService: igpService,
+	}
 }

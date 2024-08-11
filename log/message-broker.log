@@ -349,3 +349,12 @@
 {"level":"info","ts":"2024-08-11T13:41:51.953+0330","caller":"rabbitmq/rabbitmq.go:149","msg":"RabbitMQ: Shutdown the RabbitMQ consumer:","QueueName: ":"log-queue","timestamp":"2024-08-11T13:41:51.953+0330"}
 {"level":"info","ts":"2024-08-11T13:41:55.045+0330","caller":"Driver/drivers.go:32","msg":"Broker Driver set correctly","timestamp":"2024-08-11T13:41:55.045+0330"}
 {"level":"info","ts":"2024-08-11T13:41:55.047+0330","caller":"rabbitmq/rabbitmq.go:61","msg":"RabbitMQ: Start Consume job: ","QueueName: ":"log-queue","timestamp":"2024-08-11T13:41:55.047+0330"}
+{"level":"info","ts":"2024-08-11T15:15:39.828+0330","caller":"rabbitmq/rabbitmq.go:149","msg":"RabbitMQ: Shutdown the RabbitMQ consumer:","QueueName: ":"log-queue","timestamp":"2024-08-11T15:15:39.828+0330"}
+{"level":"info","ts":"2024-08-11T15:15:44.352+0330","caller":"Driver/drivers.go:32","msg":"Broker Driver set correctly","timestamp":"2024-08-11T15:15:44.352+0330"}
+{"level":"info","ts":"2024-08-11T15:15:44.353+0330","caller":"rabbitmq/rabbitmq.go:61","msg":"RabbitMQ: Start Consume job: ","QueueName: ":"log-queue","timestamp":"2024-08-11T15:15:44.353+0330"}
+{"level":"info","ts":"2024-08-11T16:11:11.390+0330","caller":"rabbitmq/rabbitmq.go:149","msg":"RabbitMQ: Shutdown the RabbitMQ consumer:","QueueName: ":"log-queue","timestamp":"2024-08-11T16:11:11.390+0330"}
+{"level":"info","ts":"2024-08-11T16:39:33.614+0330","caller":"Driver/drivers.go:32","msg":"Broker Driver set correctly","timestamp":"2024-08-11T16:39:33.614+0330"}
+{"level":"info","ts":"2024-08-11T16:39:33.615+0330","caller":"rabbitmq/rabbitmq.go:61","msg":"RabbitMQ: Start Consume job: ","QueueName: ":"log-queue","timestamp":"2024-08-11T16:39:33.615+0330"}
+{"level":"info","ts":"2024-08-11T16:41:54.047+0330","caller":"rabbitmq/rabbitmq.go:149","msg":"RabbitMQ: Shutdown the RabbitMQ consumer:","QueueName: ":"log-queue","timestamp":"2024-08-11T16:41:54.047+0330"}
+{"level":"info","ts":"2024-08-11T16:42:02.546+0330","caller":"Driver/drivers.go:32","msg":"Broker Driver set correctly","timestamp":"2024-08-11T16:42:02.546+0330"}
+{"level":"info","ts":"2024-08-11T16:42:02.547+0330","caller":"rabbitmq/rabbitmq.go:61","msg":"RabbitMQ: Start Consume job: ","QueueName: ":"log-queue","timestamp":"2024-08-11T16:42:02.547+0330"}

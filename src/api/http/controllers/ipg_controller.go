@@ -3,10 +3,12 @@ package controllers
 import (
 	"athena/src/api/http/requests"
 	"athena/src/api/http/response"
+	"athena/src/config"
 	"athena/src/pkg/i18n"
 	"athena/src/pkg/validator"
 	"athena/src/services"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"net/http"
 )
 
@@ -47,4 +49,34 @@ func (controller *IpgController) RequestPayment(c *gin.Context) {
 		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
 		Send()
 
+}
+
+func (controller *IpgController) VerifyPayment(c *gin.Context) {
+	clientUrl := config.GetInstance().Get("APP_CLIENT_HOST") + "/userPanel/purchaseUnit/paymentInfo/"
+
+	// Get the UUID from the URL parameter
+	uuidStr := c.Param("uuid")
+
+	// Parse the string to a UUID
+	id, err := uuid.Parse(uuidStr)
+	if err != nil {
+		c.Redirect(http.StatusMovedPermanently, clientUrl+uuidStr)
+		return
+	}
+
+	// todo: tx is for SEP right now, should be dynamic for multiple ipgs.
+	var tx requests.IpgCallbackRequest
+	if err = c.ShouldBind(&tx); err != nil {
+		c.Redirect(http.StatusMovedPermanently, clientUrl+uuidStr)
+		return
+	}
+
+	_, err = controller.IIpgService.VerifyPayment(&id, tx)
+	if err != nil {
+		c.Redirect(http.StatusMovedPermanently, clientUrl+uuidStr)
+		return
+	}
+
+	c.Redirect(http.StatusMovedPermanently, clientUrl+uuidStr)
+	return
 }

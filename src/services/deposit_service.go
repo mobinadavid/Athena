@@ -14,7 +14,7 @@ import (
 
 type IDepositService interface {
 	TransactionsExist(txHash string) (bool, error)
-	AddTransactionToDeposits(transaction *models.Response) error
+	Create(transaction *models.Response) error
 	HandleDeposits() error
 }
 
@@ -28,8 +28,8 @@ func (service *DepositService) TransactionsExist(txHash string) (bool, error) {
 
 }
 
-func (service *DepositService) AddTransactionToDeposits(transaction *models.Response) error {
-	return service.IDepositRepository.AddTransactionToDeposits(transaction)
+func (service *DepositService) Create(transaction *models.Response) error {
+	return service.IDepositRepository.Create(transaction)
 
 }
 
@@ -63,7 +63,7 @@ func (service *DepositService) HandleDeposits() error {
 				}
 
 				// Add transaction to the deposits table
-				err = service.IDepositRepository.AddTransactionToDeposits(tx)
+				err = service.IDepositRepository.Create(tx)
 				if err != nil {
 					fmt.Printf("failed to add transaction to deposits: %v\n", err)
 				}

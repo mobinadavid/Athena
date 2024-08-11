@@ -9,7 +9,6 @@ import (
 type IGPModel struct {
 	ID                    uint           `json:"id" gorm:"primarykey"`
 	Uuid                  uuid.UUID      `json:"uuid" gorm:"type:uuid;default:uuid_generate_v4();uniqueIndex"`
-	UserID                uint           `json:"user_id"`
 	Ipg                   string         `json:"ipg" gorm:"type:varchar(255); not null;"`
 	IssuerReferenceNumber string         `json:"issuer_reference_number" gorm:"type:varchar(255);default:null;uniqueIndex"`
 	Receipt               datatypes.JSON `json:"receipt" gorm:"type:JSON;"`

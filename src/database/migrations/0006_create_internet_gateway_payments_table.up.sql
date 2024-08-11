@@ -2,7 +2,6 @@ create table if not exists internet_gateway_payments
 (
     id bigserial primary key,
     uuid uuid default uuid_generate_v4() unique,
-    user_id bigint ,
     amount numeric(15, 6) default 0 constraint chk_orders_amount check (amount >= (0):: numeric),
     issuer_reference_number varchar(255) default null unique,
     ipg varchar(255) not null,
