@@ -41,7 +41,7 @@ func (service *DepositService) HandleDeposits() error {
 
 	walletAddresses := allocatedList.Items.(*[]*models.WalletAddress)
 	for _, walletAddress := range *walletAddresses {
-		transactions, err := service.IWalletAddressService.GetTransactionsList(walletAddress.WalletAddress, walletAddress.Blockchain)
+		transactions, err := service.IWalletAddressService.GetTransactionsList(walletAddress)
 		if err != nil {
 			return fmt.Errorf("failed to get transactions for wallet address %s: %w", walletAddress.WalletAddress, err)
 		}
