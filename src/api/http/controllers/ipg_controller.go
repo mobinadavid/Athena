@@ -30,7 +30,7 @@ func (controller *IpgController) RequestPayment(c *gin.Context) {
 		return
 	}
 
-	token, err := controller.IIpgService.RequestPayment(&req)
+	redirectUrl, err := controller.IIpgService.RequestPayment(&req)
 	if err != nil {
 		response.Api(c).
 			SetMessage(err.Error()).
@@ -42,7 +42,7 @@ func (controller *IpgController) RequestPayment(c *gin.Context) {
 	response.Api(c).
 		SetStatusCode(http.StatusCreated).
 		SetData(map[string]interface{}{
-			"token": token,
+			"redirectUrl": redirectUrl,
 		}).
 		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
 		Send()

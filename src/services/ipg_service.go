@@ -18,7 +18,7 @@ func (s *IpgService) RequestPayment(request *requests.PaymentRequest) (string, e
 		return "", err
 	}
 
-	token, err := ipgDriver.SetAmount(request.Amount).
+	redirectUrl, err := ipgDriver.SetAmount(request.Amount).
 		SetInternalReferenceNumber(uuid.NewString()).
 		SetCallbackUrl("https://").
 		SetMobile(request.Mobile).
@@ -27,5 +27,5 @@ func (s *IpgService) RequestPayment(request *requests.PaymentRequest) (string, e
 	if err != nil {
 		return "", err
 	}
-	return token, nil
+	return redirectUrl, nil
 }
