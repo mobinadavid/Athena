@@ -3,7 +3,6 @@ package controllers
 import (
 	"athena/src/api/http/requests"
 	"athena/src/api/http/response"
-	"athena/src/config"
 	"athena/src/pkg/i18n"
 	"athena/src/pkg/validator"
 	"athena/src/services"
@@ -52,17 +51,20 @@ func (controller *IpgController) RequestPayment(c *gin.Context) {
 }
 
 func (controller *IpgController) VerifyPayment(c *gin.Context) {
-	clientUrl := config.GetInstance().Get("APP_CLIENT_HOST") + "/userPanel/purchaseUnit/paymentInfo/"
-
 	// Get the UUID from the URL parameter
 	uuidStr := c.Param("uuid")
-
 	// Parse the string to a UUID
 	id, err := uuid.Parse(uuidStr)
+
+	igp, err := controller.IIpgService.GetIGPByUuid(&id)
 	if err != nil {
-		c.Redirect(http.StatusMovedPermanently, clientUrl+uuidStr)
+		response.Api(c).
+			SetMessage(err.Error()).
+			Send()
 		return
 	}
+
+	clientUrl := igp.CallbackUrl + "/"
 
 	// todo: tx is for SEP right now, should be dynamic for multiple ipgs.
 	var tx requests.IpgCallbackRequest
@@ -78,5 +80,35 @@ func (controller *IpgController) VerifyPayment(c *gin.Context) {
 	}
 
 	c.Redirect(http.StatusMovedPermanently, clientUrl+uuidStr)
+	return
+}
+
+func (controller *IpgController) GetIGPByUuid(c *gin.Context) {
+	// Get the UUID from the URL parameter
+	uuidStr := c.Param("uuid")
+
+	// Parse the string to a UUID
+	id, err := uuid.Parse(uuidStr)
+	if err != nil {
+		response.Api(c).Send()
+		return
+	}
+
+	igp, err := controller.IIpgService.GetIGPByUuid(&id)
+	if err != nil {
+		response.Api(c).
+			SetStatusCode(http.StatusNotFound).
+			SetMessage(err.Error()).
+			Send()
+		return
+	}
+
+	response.Api(c).
+		SetStatusCode(http.StatusOK).
+		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
+		SetData(map[string]interface{}{
+			"igp": igp,
+		}).
+		Send()
 	return
 }

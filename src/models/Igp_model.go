@@ -14,6 +14,7 @@ type IGPModel struct {
 	Receipt               datatypes.JSON `json:"receipt" gorm:"type:JSON;"`
 	Amount                float64        `json:"amount" gorm:"type:numeric(15,6);default:0;check:amount >= 0"`
 	Status                string         `json:"status" gorm:"type:varchar(255);not null;"`
+	CallbackUrl           string         `json:"callback_url" gorm:"type:varchar(255);not null;"`
 	CreatedAt             time.Time      `json:"created_at" gorm:"type:timestamp with time zone;default:current_timestamp"`
 	UpdatedAt             time.Time      `json:"updated_at" gorm:"type:timestamp with time zone"`
 }

@@ -59,7 +59,7 @@ func NewSep(apiKey string) (*Sep, error) {
 
 	sep := &Sep{}
 	sep.driver = sep
-	sep.SetApiKey(apiKey).SetApiClient(client)
+	sep.SetApiKey(apiKey).SetApiClient(client).SetBaseUrl(baseUrl)
 
 	return sep, nil
 }
