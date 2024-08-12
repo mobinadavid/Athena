@@ -20,7 +20,7 @@ type IpgService struct {
 
 func (service *IpgService) RequestPayment(request *requests.PaymentRequest) (interface{}, error) {
 	// IPG
-	ipgDriver, err := payment_gateway.NewIPG()
+	ipgDriver, err := payment_gateway.NewIPG(request.Driver)
 	if err != nil {
 		return "", err
 	}
@@ -39,7 +39,7 @@ func (service *IpgService) RequestPayment(request *requests.PaymentRequest) (int
 	callbackUrl := fmt.Sprintf("%s://%s/%s/%s",
 		"https",
 		config.GetInstance().Get("APP_HOST"),
-		"user/api/v1/financial/orders/ipg-callback",
+		"api/v1/ipg-callback",
 		igp.Uuid.String(),
 	)
 

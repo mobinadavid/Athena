@@ -44,7 +44,7 @@ func (controller *IpgController) RequestPayment(c *gin.Context) {
 	response.Api(c).
 		SetStatusCode(http.StatusCreated).
 		SetData(map[string]interface{}{
-			"redirectUrl": redirectUrl,
+			"redirect_url": redirectUrl,
 		}).
 		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
 		Send()
