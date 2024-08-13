@@ -27,7 +27,7 @@ sudo certbot certonly --manual --preferred-challenges=dns -d *.APP_HOST -d $APP_
 ```
 - Manage TLS certs:
   ```shell
-  mkdir -p build/certs/{app,nginx,postgresql,vault,redis}
+  mkdir -p build/certs/{app,nginx,postgresql,vault,redis,rabbitmq}
   cp /etc/letsencrypt/live/$APP_HOST/* build/certs/app
   cp /etc/letsencrypt/live/$APP_HOST/* build/certs/nginx
   cp /etc/letsencrypt/live/$APP_HOST/* build/certs/postgresql
