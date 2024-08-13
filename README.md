@@ -32,7 +32,8 @@ sudo certbot certonly --manual --preferred-challenges=dns -d *.APP_HOST -d $APP_
   cp /etc/letsencrypt/live/$APP_HOST/* build/certs/nginx
   cp /etc/letsencrypt/live/$APP_HOST/* build/certs/postgresql
   cp /etc/letsencrypt/live/$APP_HOST/* build/certs/vault
-  cp /etc/letsencrypt/live/$APP_HOST/* build/certs/redis
+  cp /etc/letsencrypt/live/$APP_HOST/* build/certs/redis 
+  cp /etc/letsencrypt/live/$APP_HOST/* build/certs/rabbitmq
 
 
 - Finally, build the app:
