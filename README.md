@@ -21,17 +21,7 @@
     ```shell
     go mod download
     ```
-- Run following command to get a new AES-256-GCM Encryption key:
-    ```shell
-    go run main.go encryption key:generate
-    ```
-  This should print an output like this:<br>
-  <code>
-  New key:
-  base64:n39283Gu3WCVCHZqxF/NExboMEDDQDzEd8TLZNyvQS8=
-  </code>
 
-  Copy & Paste the encryption key to your env <code>APP_KEY</code>
 - Obtain necessary SSL Certificates with services like certbot or acme
 - Finally, build the app:
     ```shell
