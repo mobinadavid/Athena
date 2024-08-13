@@ -4,12 +4,7 @@ import (
 	"athena/src/api"
 	"athena/src/cache"
 	"athena/src/database"
-	"athena/src/job"
 	"athena/src/pkg/i18n"
-	"context"
-	"github.com/amirhossein2831/message-brokering/broker/Consumer"
-	"github.com/amirhossein2831/message-brokering/broker/Driver"
-	"github.com/joho/godotenv"
 	"log"
 	"os"
 	"os/signal"
@@ -21,9 +16,6 @@ func Init() (err error) {
 		log.Println("Goodbye!")
 		os.Exit(0)
 	}()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	// Initialize i18n
 	err = i18n.Init()
@@ -45,13 +37,6 @@ func Init() (err error) {
 		}
 	}()
 
-	// Initialize queue
-	//err = queue.Init()
-	//if err != nil {
-	//	log.Fatalf("Queue Service: Failed to Initialize. %v", err)
-	//}
-	//log.Println("Queue Service: Initialized Successfully.")
-
 	// Initialize database
 	err = database.Init()
 	if err != nil {
@@ -64,21 +49,6 @@ func Init() (err error) {
 			log.Fatalf("Failed to close database connection: %v", err)
 		}
 	}()
-
-	err = godotenv.Load()
-	if err != nil {
-		return
-	}
-
-	//init driver
-	err = Driver.Init()
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-
-	//init job
-	Consumer.RegisterJob(ctx, job.NewLogJob())
 
 	// Initialize API
 	go func() {
@@ -94,8 +64,6 @@ func Init() (err error) {
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
-	cancel()
-	Consumer.ShutDown()
 
 	log.Println("Application is shutting down...")
 
