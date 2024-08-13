@@ -16,7 +16,7 @@ type IpgController struct {
 }
 
 func (controller *IpgController) RequestPayment(c *gin.Context) {
-	var req requests.PaymentRequest
+	var req requests.CreatePaymentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.Api(c).Send()
 		return

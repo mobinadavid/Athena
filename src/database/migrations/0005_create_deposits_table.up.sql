@@ -1,7 +1,7 @@
 create table if not exists deposits (
 
     id                bigserial primary key,
-    hash              text,
+    transaction_hash  text,
     created_at        timestamp with time zone,
     updated_at        timestamp with time zone,
     deleted_at        timestamp with time zone

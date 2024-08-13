@@ -10,7 +10,7 @@ func IpgRouter(router *gin.RouterGroup) {
 
 	ipg := router.Group("ipg")
 	ipg.POST("request-payment", serviceContainer.IpgController.RequestPayment)
-	ipg.POST("ipg-callback/:uuid", serviceContainer.IpgController.VerifyPayment)
+	ipg.POST("callback/:uuid", serviceContainer.IpgController.VerifyPayment)
 	ipg.GET("igp/:uuid", serviceContainer.IpgController.GetIGPByUuid)
 
 }

@@ -11,7 +11,7 @@ import (
 )
 
 type IIpgService interface {
-	RequestPayment(request *requests.PaymentRequest) (interface{}, error)
+	RequestPayment(request *requests.CreatePaymentRequest) (interface{}, error)
 	VerifyPayment(uuid *uuid.UUID, tx requests.IpgCallbackRequest) (interface{}, error)
 	GetIGPByUuid(uuid *uuid.UUID) (*models.IGPModel, error)
 }
@@ -19,7 +19,7 @@ type IpgService struct {
 	IIGPService IIGPService
 }
 
-func (service *IpgService) RequestPayment(request *requests.PaymentRequest) (interface{}, error) {
+func (service *IpgService) RequestPayment(request *requests.CreatePaymentRequest) (interface{}, error) {
 	// IPG
 	ipgDriver, err := payment_gateway.NewIPG(request.Driver)
 	if err != nil {
@@ -41,7 +41,7 @@ func (service *IpgService) RequestPayment(request *requests.PaymentRequest) (int
 	callbackUrl := fmt.Sprintf("%s://%s/%s/%s",
 		"https",
 		config.GetInstance().Get("APP_HOST"),
-		"api/v1/ipg/ipg-callback",
+		"app/api/v1/ipg/callback",
 		igp.Uuid.String(),
 	)
 

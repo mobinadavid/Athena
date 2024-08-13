@@ -6,7 +6,7 @@ create table if not exists internet_gateway_payments
     issuer_reference_number varchar(255) default null unique,
     ipg varchar(255) not null,
     receipt jsonb default null,
-    callback_url varchar(255) default null,
+    callback_url varchar(255) not null,
     status varchar(255) default 'pending'::character varying not null,
     created_at timestamp with time zone default CURRENT_TIMESTAMP,
     updated_at timestamp with time zone

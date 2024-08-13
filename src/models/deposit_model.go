@@ -6,11 +6,11 @@ import (
 )
 
 type Deposits struct {
-	ID        uint           `gorm:"primaryKey" json:"id"`
-	Hash      string         `gorm:"not null" json:"hash"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
+	ID              uint           `gorm:"primaryKey" json:"id"`
+	TransactionHash string         `gorm:"not null" json:"transaction_hash"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	DeletedAt       gorm.DeletedAt `gorm:"index" json:"deleted_at"`
 }
 
 // TableName sets the table name of the model

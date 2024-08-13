@@ -17,41 +17,6 @@ type WalletAddressController struct {
 	IWalletAddressService services.IWalletAddressService
 }
 
-func (controller *WalletAddressController) AllocateWalletAddresses(c *gin.Context) {
-	var req requests.AllocateWalletAddress
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Api(c).Send()
-		return
-	}
-
-	// Validate the payload.
-	if err := validator.Validate(&req, c.GetString("locale")); err != nil {
-		response.Api(c).
-			SetStatusCode(http.StatusUnprocessableEntity).
-			SetErrors(err).
-			Send()
-		return
-	}
-
-	walletAddress, err := controller.IWalletAddressService.AllocateWalletAddresses(&req)
-	if err != nil {
-		response.Api(c).
-			SetMessage(err.Error()).
-			Send()
-		return
-	}
-
-	// Return response.
-	response.Api(c).
-		SetStatusCode(http.StatusCreated).
-		SetData(map[string]interface{}{
-			"wallet_address": walletAddress,
-		}).
-		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
-		Send()
-
-}
-
 func (controller *WalletAddressController) GetList(c *gin.Context) {
 	var walletAddress *scopes.PaginateModel
 	filters := make(map[string]interface{})
@@ -221,6 +186,41 @@ func (controller *WalletAddressController) Update(c *gin.Context) {
 
 	walletAddress, err := controller.IWalletAddressService.Update(&id, &req)
 
+	if err != nil {
+		response.Api(c).
+			SetMessage(err.Error()).
+			Send()
+		return
+	}
+
+	// Return response.
+	response.Api(c).
+		SetStatusCode(http.StatusCreated).
+		SetData(map[string]interface{}{
+			"wallet_address": walletAddress,
+		}).
+		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
+		Send()
+
+}
+
+func (controller *WalletAddressController) AllocateWalletAddresses(c *gin.Context) {
+	var req requests.AllocateWalletAddress
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Api(c).Send()
+		return
+	}
+
+	// Validate the payload.
+	if err := validator.Validate(&req, c.GetString("locale")); err != nil {
+		response.Api(c).
+			SetStatusCode(http.StatusUnprocessableEntity).
+			SetErrors(err).
+			Send()
+		return
+	}
+
+	walletAddress, err := controller.IWalletAddressService.AllocateWalletAddresses(&req)
 	if err != nil {
 		response.Api(c).
 			SetMessage(err.Error()).

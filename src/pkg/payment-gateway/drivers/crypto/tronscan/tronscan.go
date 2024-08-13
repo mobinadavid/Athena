@@ -27,7 +27,9 @@ func NewTronscan(baseUrl string) (*Tronscan, error) {
 
 	tronscan.apiClient.
 		SetHeader("Content-Type", "application/json").
-		SetTimeout(time.Duration(requestTimeout) * time.Second).SetRetryCount(maxRetry).SetRetryWaitTime(1 * time.Second)
+		SetTimeout(time.Duration(requestTimeout) * time.Second).
+		SetRetryCount(maxRetry).
+		SetRetryWaitTime(5 * time.Second)
 
 	return tronscan, nil
 }
@@ -51,56 +53,79 @@ func (t *Tronscan) FetchTransactions(walletAddress string) ([]*models.Transactio
 		return nil, fmt.Errorf("error unmarshalling response: %w", err)
 	}
 
-	// Convert TronScanResponse to your Transaction type
+	return parseTransactions(tronScanResponse.Data), nil
+}
+
+// Helper function to parse transactions from the Tronscan response.
+func parseTransactions(txResults []map[string]interface{}) []*models.Transaction {
 	var transactions []*models.Transaction
-	for _, tx := range tronScanResponse.Data {
 
-		var toAddresses []string
-		to := fmt.Sprintf("%v", tx["toAddress"])
-		toAddresses = append(toAddresses, to)
+	for _, tx := range txResults {
+		toAddresses := []string{fmt.Sprintf("%v", tx["toAddress"])}
 
-		var timestampStr string
-		if timestampMs, ok := tx["timestamp"].(float64); ok {
-			// Convert milliseconds to seconds
-			timestampSecs := int64(timestampMs / 1000)
-			// Convert Unix timestamp to time.Time
-			utcTime := time.Unix(timestampSecs, 0).UTC()
-			// Format time.Time to a string
-			timestampStr = utcTime.Format("Jan-02-2006 03:04:05 PM UTC")
-		} else {
-			// Handle the case where timestamp is not a float64
-			timestampStr = fmt.Sprintf("%v", tx["timestamp"])
+		timestampStr, err := parseTimestamp(tx["timestamp"])
+		if err != nil {
+			// Log the error but continue processing other transactions
+			fmt.Printf("warning: %v\n", err)
 		}
 
-		var feeStr string
-		if cost, ok := tx["cost"].(map[string]interface{}); ok {
-			if fee, ok := cost["fee"].(float64); ok {
-				feeStr = fmt.Sprintf("%.0f", fee) // Adjust precision as needed
-			} else {
-				feeStr = fmt.Sprintf("%v", cost["fee"])
-			}
+		feeStr := parseFee(tx["cost"])
+		blockStr := parseBlock(tx["block"])
+
+		isConfirmed, ok := tx["confirmed"].(bool)
+		if !ok {
+			isConfirmed = false // default value if type assertion fails
 		}
 
-		var blockstr string
-		if block, ok := tx["block"].(float64); ok {
-			blockstr = fmt.Sprintf("%.0f", block)
-		} else {
-			blockstr = fmt.Sprintf("%v", tx["block"])
-		}
-
-		response := &models.Transaction{
-			BlockNumber: blockstr,
+		transaction := &models.Transaction{
+			BlockNumber: blockStr,
 			Hash:        fmt.Sprintf("%v", tx["hash"]),
 			Timestamp:   timestampStr,
 			From:        fmt.Sprintf("%v", tx["ownerAddress"]),
 			ToAddresses: toAddresses,
 			Amount:      fmt.Sprintf("%v", tx["amount"]),
 			Fee:         feeStr,
-			IsConfirmed: tx["confirmed"].(bool),
+			IsConfirmed: isConfirmed,
 			BlockChain:  "TRX",
 		}
-		transactions = append(transactions, response)
+		transactions = append(transactions, transaction)
 	}
 
-	return transactions, nil
+	return transactions
+}
+
+// Helper function to parse and format the timestamp.
+func parseTimestamp(timestamp interface{}) (string, error) {
+	timestampMs, ok := timestamp.(float64)
+	if !ok {
+		return "", fmt.Errorf("invalid timestamp format")
+	}
+
+	timestampSecs := int64(timestampMs / 1000)
+	utcTime := time.Unix(timestampSecs, 0).UTC()
+	return utcTime.Format("Jan-02-2006 03:04:05 PM UTC"), nil
+}
+
+// Helper function to parse and format the fee.
+func parseFee(cost interface{}) string {
+	costMap, ok := cost.(map[string]interface{})
+	if !ok {
+		return fmt.Sprintf("%v", cost)
+	}
+
+	fee, ok := costMap["fee"].(float64)
+	if !ok {
+		return fmt.Sprintf("%v", costMap["fee"])
+	}
+	return fmt.Sprintf("%.0f", fee)
+}
+
+// Helper function to parse and format the block number.
+func parseBlock(block interface{}) string {
+	switch v := block.(type) {
+	case float64:
+		return fmt.Sprintf("%.0f", v)
+	default:
+		return fmt.Sprintf("%v", block)
+	}
 }

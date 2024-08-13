@@ -4,7 +4,6 @@ import (
 	"athena/src/config"
 	"athena/src/models"
 	"athena/src/repositories"
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/go-resty/resty/v2"
@@ -14,7 +13,7 @@ import (
 
 type IDepositService interface {
 	TransactionsExist(txHash string) (bool, error)
-	Create(transaction *models.Response) error
+	Create(transaction *models.TransactionResponse) error
 	HandleDeposits() error
 }
 
@@ -28,12 +27,13 @@ func (service *DepositService) TransactionsExist(txHash string) (bool, error) {
 
 }
 
-func (service *DepositService) Create(transaction *models.Response) error {
+func (service *DepositService) Create(transaction *models.TransactionResponse) error {
 	return service.IDepositRepository.Create(transaction)
 
 }
 
 func (service *DepositService) HandleDeposits() error {
+	//get allocated and active walletAddresses
 	allocatedList, err := service.IWalletAddressService.GetAllocatedList()
 	if err != nil {
 		return err
@@ -61,8 +61,7 @@ func (service *DepositService) HandleDeposits() error {
 				if err := sendToWebhook(tx, walletAddress.WebhookURL); err != nil {
 					fmt.Printf("failed to send transaction to webhook: %v\n", err)
 				}
-
-				// Add transaction to the deposits table
+				// Add transaction_hash to the deposits table
 				err = service.IDepositRepository.Create(tx)
 				if err != nil {
 					fmt.Printf("failed to add transaction to deposits: %v\n", err)
@@ -82,19 +81,19 @@ func sendToWebhook(tx interface{}, webhookUrl string) error {
 	}
 
 	configs := config.GetInstance()
-	maxRetry, _ := strconv.Atoi(configs.Get("SENT_TO_WEBHOOK_MAX_RETRY"))
+	maxRetry, _ := strconv.Atoi(configs.Get("SEND_TO_WEBHOOK_MAX_RETRY"))
 
 	// Create a Resty client with a timeout
 	client := resty.New().
 		SetTimeout(10 * time.Second).
 		SetRetryCount(maxRetry).
-		SetRetryWaitTime(2 * time.Second).
-		SetRetryMaxWaitTime(2 * time.Second)
+		SetRetryWaitTime(5 * time.Second).
+		SetRetryMaxWaitTime(5 * time.Second)
 
 	// Send a POST request
 	resp, err := client.R().
 		SetHeader("Content-Type", "application/json").
-		SetBody(bytes.NewBuffer(txData)).
+		SetBody(txData).
 		Post(webhookUrl)
 
 	if err != nil {

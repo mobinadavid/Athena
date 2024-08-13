@@ -5,4 +5,5 @@ type CreateWalletAddressRequest struct {
 	Name          string ` json:"name" validate:""`
 	IsActive      *bool  `json:"is_active" validate:"required,boolean"`
 	Blockchain    string `json:"blockchain_name" validate:"required,max=255"`
+	WebhookURL    string `json:"webhook_url" validate:"required,url"`
 }

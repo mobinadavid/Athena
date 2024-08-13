@@ -36,7 +36,9 @@ func NewEtherscan(baseUrl string) (*Etherscan, error) {
 
 	etherscan.apiClient.
 		SetHeader("Content-Type", "application/json").
-		SetTimeout(time.Duration(requestTimeout) * time.Second).SetRetryCount(maxRetry).SetRetryWaitTime(1 * time.Second)
+		SetTimeout(time.Duration(requestTimeout) * time.Second).
+		SetRetryCount(maxRetry).
+		SetRetryWaitTime(5 * time.Second)
 
 	return etherscan, nil
 }
@@ -60,44 +62,52 @@ func (e *Etherscan) FetchTransactions(walletAddress string) ([]*models.Transacti
 		return nil, fmt.Errorf("error unmarshalling response: %w", err)
 	}
 
-	var transactions []*models.Transaction
-	for _, tx := range etherScanResponse.Result {
-		var toAddresses []string
-		to := fmt.Sprintf("%v", tx["to"])
-		toAddresses = append(toAddresses, to)
+	return parseTransactions(etherScanResponse.Result), nil
+}
 
-		var timestampInt int64
-		if timestamp, ok := tx["timeStamp"].(string); ok {
-			// Convert timestamp to int64
-			var err error
-			timestampInt, err = strconv.ParseInt(timestamp, 10, 64)
-			if err != nil {
-				return nil, fmt.Errorf("error parsing timestamp: %w", err)
-			}
-		} else {
-			return nil, fmt.Errorf("invalid timestamp format")
+// Helper function to parse transactions from the Etherscan response.
+func parseTransactions(txResults []map[string]interface{}) []*models.Transaction {
+	var transactions []*models.Transaction
+
+	for _, tx := range txResults {
+		toAddresses := []string{fmt.Sprintf("%v", tx["to"])}
+
+		timestampStr, err := parseTimestamp(tx["timeStamp"])
+		if err != nil {
+			// Log the error but continue processing other transactions
+			fmt.Printf("warning: %v\n", err)
 		}
 
-		// Convert Unix timestamp to UTC time
-		utcTime := time.Unix(timestampInt, 0).UTC()
-
-		// Format into desired format
-		timestampStr := utcTime.Format("Jan-02-2006 03:04:05 PM UTC")
-
-		response := &models.Transaction{
-			BlockNumber:   tx["blockNumber"].(string),
-			Hash:          tx["hash"].(string),
+		transaction := &models.Transaction{
+			BlockNumber:   fmt.Sprintf("%v", tx["blockNumber"]),
+			Hash:          fmt.Sprintf("%v", tx["hash"]),
 			Timestamp:     timestampStr,
-			From:          tx["from"].(string),
+			From:          fmt.Sprintf("%v", tx["from"]),
 			ToAddresses:   toAddresses,
-			GasUsed:       tx["gasUsed"].(string),
-			GasPrice:      tx["gasPrice"].(string),
-			Confirmations: tx["confirmations"].(string),
-			Amount:        tx["value"].(string),
+			GasUsed:       fmt.Sprintf("%v", tx["gasUsed"]),
+			GasPrice:      fmt.Sprintf("%v", tx["gasPrice"]),
+			Confirmations: fmt.Sprintf("%v", tx["confirmations"]),
+			Amount:        fmt.Sprintf("%v", tx["value"]),
 			BlockChain:    "ETH",
 		}
-		transactions = append(transactions, response)
+		transactions = append(transactions, transaction)
 	}
 
-	return transactions, nil
+	return transactions
+}
+
+// Helper function to parse and format the timestamp.
+func parseTimestamp(timestamp interface{}) (string, error) {
+	timestampStr, ok := timestamp.(string)
+	if !ok {
+		return "", fmt.Errorf("invalid timestamp format")
+	}
+
+	timestampInt, err := strconv.ParseInt(timestampStr, 10, 64)
+	if err != nil {
+		return "", fmt.Errorf("error parsing timestamp: %w", err)
+	}
+
+	utcTime := time.Unix(timestampInt, 0).UTC()
+	return utcTime.Format("Jan-02-2006 03:04:05 PM UTC"), nil
 }

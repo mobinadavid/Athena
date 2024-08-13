@@ -8,7 +8,7 @@ import (
 
 type IDepositRepository interface {
 	TransactionsExist(txHash string) (bool, error)
-	Create(transaction *models.Response) error
+	Create(transaction *models.TransactionResponse) error
 }
 
 type DepositRepository struct {
@@ -19,7 +19,7 @@ func (repository *DepositRepository) TransactionsExist(txHash string) (bool, err
 	var count int64
 	result := repository.IDatabaseHandler.GetClient().
 		Model(&models.Deposits{}).
-		Where("hash = ?", txHash).
+		Where("transaction_hash = ?", txHash).
 		Count(&count)
 
 	if result.Error != nil {
@@ -29,11 +29,10 @@ func (repository *DepositRepository) TransactionsExist(txHash string) (bool, err
 	return count > 0, nil
 }
 
-func (repository *DepositRepository) Create(transaction *models.Response) error {
+func (repository *DepositRepository) Create(transaction *models.TransactionResponse) error {
 	newTransaction := &models.Deposits{
-		Hash: transaction.Hash,
+		TransactionHash: transaction.Hash,
 	}
-
 	// Insert the new transaction into the deposits table
 	result := repository.IDatabaseHandler.GetClient().Create(newTransaction)
 	if result.Error != nil {
