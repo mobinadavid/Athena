@@ -21,8 +21,20 @@
     ```shell
     go mod download
     ```
+- Obtain necessary SSL Certificates with Certbot:
+```shell
+sudo certbot certonly --manual --preferred-challenges=dns -d *.APP_HOST -d $APP_HOST
+```
+- Manage TLS certs:
+  ```shell
+  mkdir -p build/certs/{app,nginx,postgresql,vault,redis}
+  cp /etc/letsencrypt/live/$APP_HOST/* build/certs/app
+  cp /etc/letsencrypt/live/$APP_HOST/* build/certs/nginx
+  cp /etc/letsencrypt/live/$APP_HOST/* build/certs/postgresql
+  cp /etc/letsencrypt/live/$APP_HOST/* build/certs/vault
+  cp /etc/letsencrypt/live/$APP_HOST/* build/certs/redis
 
-- Obtain necessary SSL Certificates with services like certbot or acme
+
 - Finally, build the app:
     ```shell
     go build -o athena main.go
