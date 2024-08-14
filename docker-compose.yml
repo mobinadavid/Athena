@@ -86,31 +86,9 @@ services:
     networks:
       - athena
 
-  # Redis
-  redis:
-    image: redis:alpine
-    container_name: redis.${APP_HOST}
-    restart: unless-stopped
-    command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
-    volumes:
-      - ./build/certs/redis:/etc/redis/certs:ro
-      - ./build/docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
-      - redis:/data
-    tty: true
-    environment:
-      TZ: ${APP_TZ}
-    healthcheck:
-      test: [ "CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD} --tls ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - athena
-
 # Persistent Volumes
 volumes:
   postgres:
-  redis:
   vault-data:
 
 # Networks

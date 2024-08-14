@@ -2,8 +2,3 @@ services:
   postgres:
     ports:
       - ${DB_PORT:-5432}:5432
-
-  redis:
-    ports:
-      - ${REDIS_PORT:-6379}:6379
-
