@@ -1,0 +1,1 @@
+drop table if exists internet_gateway_payments;

@@ -9,5 +9,7 @@
   "invalid-jalali-date": "La fecha proporcionada debe ser una fecha jalali formateada válida.",
   "invalid-is-uuid": "El valor proporcionado no es un UUID válido.",
   "invalid-exists": "El valor proporcionado no es válido.",
-  "invalid-is-strong-password": "La contraseña proporcionada no es lo suficientemente segura."
+  "invalid-is-strong-password": "La contraseña proporcionada no es lo suficientemente segura.",
+  "invalid-is-wallet-address": "El valor proporcionado no es una dirección de billetera válida."
+
 }

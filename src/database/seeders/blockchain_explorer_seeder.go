@@ -1,0 +1,59 @@
+package seeders
+
+import (
+	"athena/src/database"
+	blockchainModel "athena/src/models"
+	"log"
+)
+
+func SeedExplorer() {
+	var db = database.GetInstance()
+
+	// Retrieve the existing Blockchain records
+	var bitcoinBlockchain, tronBlockchain, ethereumBlockchain, binanceBlockchain blockchainModel.Blockchain
+	db.GetClient().Where("name = ?", "Tron").First(&tronBlockchain)
+	db.GetClient().Where("name = ?", "Ethereum").First(&ethereumBlockchain)
+	db.GetClient().Where("name = ?", "Binance").First(&binanceBlockchain)
+	db.GetClient().Where("name = ?", "Bitcoin").First(&bitcoinBlockchain)
+
+	// Seed the BlockchainExplorer records and associate them with the Blockchain records
+	isActive := true
+	isDefault := true
+
+	explorers := []*blockchainModel.BlockchainExplorer{
+		{
+			IsActive:    &isActive,
+			BaseUrl:     "https://apilist.tronscanapi.com",
+			Name:        "tronscan",
+			IsDefault:   &isDefault,
+			Blockchains: []*blockchainModel.Blockchain{&tronBlockchain},
+		},
+		{
+			IsActive:    &isActive,
+			BaseUrl:     "https://api.etherscan.io",
+			Name:        "etherscan",
+			IsDefault:   &isDefault,
+			Blockchains: []*blockchainModel.Blockchain{&ethereumBlockchain},
+		},
+		{
+			IsActive:    &isActive,
+			BaseUrl:     "https://api.bscscan.com",
+			Name:        "bscscan",
+			IsDefault:   &isDefault,
+			Blockchains: []*blockchainModel.Blockchain{&binanceBlockchain},
+		},
+		{
+			IsActive:    &isActive,
+			BaseUrl:     "https://blockchain.info",
+			Name:        "blockchain.info",
+			IsDefault:   &isDefault,
+			Blockchains: []*blockchainModel.Blockchain{&bitcoinBlockchain},
+		},
+	}
+
+	for _, explorer := range explorers {
+		db.GetClient().FirstOrCreate(&explorer, blockchainModel.BlockchainExplorer{Name: explorer.Name, BaseUrl: explorer.BaseUrl})
+	}
+
+	log.Println("Blockchain_explorer Seeder executed successfully.")
+}

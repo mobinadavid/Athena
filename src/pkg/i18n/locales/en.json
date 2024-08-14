@@ -12,6 +12,7 @@
   "invalid-iranian-bank-sheba-number": "Given Iranian bank sheba number is invalid.",
   "invalid-jalali-date": "Given date must be a valid formatted jalali date.",
   "invalid-is-uuid": "The provided value is not a valid UUID.",
+  "invalid-is-wallet-address": "The provided value is not a valid Wallet Address.",
   "invalid-exists": "The provided value is not found in our dataset.",
   "invalid-is-strong-password": "Given password is not strong enough."
 }
