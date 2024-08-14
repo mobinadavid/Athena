@@ -2,12 +2,3 @@ services:
   postgres:
     ports:
       - ${DB_PORT:-5432}:5432
-
-  redis:
-    ports:
-      - ${REDIS_PORT:-6379}:6379
-
-  rabbitmq:
-    ports:
-      - ${RABBITMQ_PORT:-5672}:5672
-      - ${RABBITMQ_MANAGEMENT_PORT:-15672}:15672

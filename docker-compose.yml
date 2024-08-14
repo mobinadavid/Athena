@@ -1,3 +1,5 @@
+version: '3'
+
 services:
   # App
   app:
@@ -54,7 +56,7 @@ services:
       - ./build/docker/postgresql/pg_hba.conf:/etc/pg_hba.conf:ro
       - ./build/docker/postgresql/postgres-init.sh:/docker-entrypoint-initdb.d/postgres-init.sh:ro
       - postgres:/var/lib/postgresql/data
-    command: ["postgres", "-c", "config_file=/etc/postgresql.conf", "-c", "hba_file=/etc/pg_hba.conf"]
+    command: [ "postgres", "-c", "config_file=/etc/postgresql.conf", "-c", "hba_file=/etc/pg_hba.conf" ]
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${DB_USERNAME}" ]
       interval: 10s
@@ -63,54 +65,31 @@ services:
     networks:
       - athena
 
-  # Redis
-  redis:
-    image: redis:alpine
-    container_name: redis.${APP_HOST}
+  # Vault
+  vault:
+    image: vault:1.13.3
+    container_name: vault.${APP_HOST}
     restart: unless-stopped
-    command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
-    volumes:
-      - ./build/certs/redis:/etc/redis/certs:ro
-      - ./build/docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
-      - redis:/data
-    tty: true
+    ports:
+      - "8200:8200"
     environment:
+      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+      VAULT_ADDR: ${VAULT_HOST}:${VAULT_PORT}
       TZ: ${APP_TZ}
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD} --tls ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - athena
-
-  # RabbitMQ
-  rabbitmq:
-    image: rabbitmq:management-alpine
-    container_name: rabbitmq.${APP_HOST}
-    restart: unless-stopped
-    environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-app}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-app}
-      TZ: ${APP_TZ}
+    cap_add:
+      - IPC_LOCK
     volumes:
-      - ./build/certs/rabbitmq:/etc/rabbitmq/certs:ro
-      - ./build/docker/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
-      - rabbitmq:/var/lib/rabbitmq
-    tty: true
-    healthcheck:
-      test: ["CMD-SHELL", "rabbitmqctl status"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - ./build/certs/vault:/etc/vault/certs:ro
+      - ./build/docker/vault:/vault/config:ro
+      - vault-data:/vault/data
+    command: server
     networks:
       - athena
 
 # Persistent Volumes
 volumes:
   postgres:
-  redis:
-  rabbitmq:
+  vault-data:
 
 # Networks
 networks:

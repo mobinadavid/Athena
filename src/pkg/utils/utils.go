@@ -6,6 +6,7 @@ import (
 	"math/big"
 	mRand "math/rand"
 	"reflect"
+	"strings"
 )
 
 // GenerateSalt generates a new salt of the given length.
@@ -58,4 +59,19 @@ func IsUpdateRequestEmpty(req interface{}) bool {
 func Base64ToBigInt(b64 string) *big.Int {
 	data, _ := base64.StdEncoding.DecodeString(b64)
 	return new(big.Int).SetBytes(data)
+}
+
+// GetStructFieldNames returns the field names of a struct.
+func GetStructFieldNames(model interface{}) map[string]bool {
+	fieldNames := make(map[string]bool)
+	val := reflect.ValueOf(model)
+	for i := 0; i < val.Type().NumField(); i++ {
+		field := val.Type().Field(i)
+		jsonTag := field.Tag.Get("json")
+		if jsonTag != "" && jsonTag != "-" {
+			jsonField := strings.Split(jsonTag, ",")[0]
+			fieldNames[jsonField] = true
+		}
+	}
+	return fieldNames
 }
