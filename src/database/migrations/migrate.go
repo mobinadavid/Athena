@@ -3,32 +3,45 @@ package migrations
 import (
 	"athena/src/config"
 	"athena/src/database"
+	"embed"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"log"
 )
 
-var migration *migrate.Migrate
+//go:embed *.sql
+var migrationFS embed.FS
+
+var (
+	migration *migrate.Migrate
+	db        = database.GetInstance()
+)
 
 func init() {
 	config.Init()
 	database.Init()
 
-	db := database.GetInstance()
 	driver, err := postgres.WithInstance(db.GetDB(), &postgres.Config{})
 
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://src/database/migrations",
+	source, err := iofs.New(migrationFS, ".")
+	if err != nil {
+		log.Fatalf("Migration service error:%v", err)
+	}
+
+	m, err := migrate.NewWithInstance(
+		"iofs",
+		source,
 		"postgres",
 		driver,
 	)
 
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("Migration service error:%v", err)
 	}
 
 	migration = m

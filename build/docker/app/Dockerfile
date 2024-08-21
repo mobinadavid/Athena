@@ -19,10 +19,4 @@ RUN --mount=type=cache,target=/go/pkg/mod/cache \
 RUN --mount=type=cache,target=/go/pkg/mod/cache \
     go build -o athena main.go
 
-# Start a new stage from scratch
-FROM alpine:latest
-RUN apk update && apk add ca-certificates && rm -rf /var/cache/apk*
-WORKDIR /usr/local/bin/athena
-COPY --from=builder /athena/.env .
-COPY --from=builder /athena/athena .
 CMD ["./athena", "app", "bootstrap"]
