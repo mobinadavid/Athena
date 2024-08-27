@@ -1,4 +1,0 @@
-services:
-  postgres:
-    ports:
-      - ${DB_INTERNAL_PORT:-DB_INTERNAL_PORT}:${DB_EXTERNAL_PORT}

@@ -43,8 +43,8 @@ func Init() (err error) {
 // preventing multiple connections in a concurrent environment.
 func (database *Database) Connect() (err error) {
 	connectOnce.Do(func() {
-		configs := config.GetInstance()                            // Retrieve configurations
-		dbPort, _ := strconv.Atoi(configs.Get("DB_INTERNAL_PORT")) // Convert port to int
+		configs := config.GetInstance()                   // Retrieve configurations
+		dbPort, _ := strconv.Atoi(configs.Get("DB_PORT")) // Convert port to int
 		// Initialize the driver with configuration values
 		database.driver = &databaseDrivers.Postgres{
 			Username: configs.Get("DB_USERNAME"),
