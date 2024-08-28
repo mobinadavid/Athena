@@ -45,8 +45,6 @@ services:
     image: docker-repo.omaxplatform.com/postgres:alpine
     container_name: postgres.${APP_HOST}
     restart: unless-stopped
-    ports:
-      - ${DB_PORT}:${DB_EXTERNAL_PORT}
     environment:
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
