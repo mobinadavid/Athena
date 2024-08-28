@@ -1,4 +1,4 @@
 services:
   postgres:
     ports:
-      - ${DB_PORT:-DB_EXTERNAL_PORT}:${DB_EXTERNAL_PORT}
+      - ${DB_PORT:-5432}:5432
