@@ -38,10 +38,11 @@ func (service *IpgService) RequestPayment(request *requests.CreatePaymentRequest
 		return nil, err
 	}
 
-	callbackUrl := fmt.Sprintf("%s://%s/%s/%s",
+	callbackUrl := fmt.Sprintf("%s://%s%s/%s/%s",
 		"https",
+		"athena.",
 		config.GetInstance().Get("APP_HOST"),
-		"app/api/v1/ipg/callback",
+		"api/v1/ipg/callback",
 		igp.Uuid.String(),
 	)
 

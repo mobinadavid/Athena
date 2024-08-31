@@ -1,4 +1,4 @@
-FROM golang:alpine AS builder
+FROM docker-repo.omaxplatform.com/golang:alpine AS builder
 LABEL maintainer="Ali Khedmati"
 # ENVs
 ENV CGO_ENABLED 0 \
@@ -11,6 +11,7 @@ ENV CGO_ENABLED 0 \
 WORKDIR /athena
 COPY . /athena
 # Install Dependencies
+ENV GOPROXY=http://nexus-repo.omaxplatform.com/repository/go-proxy,direct
 RUN --mount=type=cache,target=/go/pkg/mod/cache \
     --mount=type=cache,target=/go-build \
     go mod download
