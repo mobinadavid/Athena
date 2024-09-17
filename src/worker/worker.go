@@ -12,8 +12,8 @@ func Init(ctx context.Context) error {
 	serviceContainer := providers.GetContainer()
 	cronScheduler := cron.New()
 
-	// Schedule the service method to run every 30 seconds
-	_, err := cronScheduler.AddFunc("@every 30s", func() {
+	// Schedule the service method to run every 2 minutes
+	_, err := cronScheduler.AddFunc("@every 2m", func() {
 		err := serviceContainer.DepositService.HandleDeposits()
 		if err != nil {
 			log.Printf("Error handling new deposits: %v", err)

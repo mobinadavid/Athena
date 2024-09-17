@@ -278,7 +278,7 @@ func isValidTransaction(tx *models.Transaction, walletAddress *models.WalletAddr
 		}
 		return confirmations > 12 && tx.From == strings.ToLower(walletAddress.WalletAddress) && transactionTime.After(walletAddress.AllocatedAt)
 	case "TRX":
-		return tx.IsConfirmed && tx.From == walletAddress.WalletAddress
+		return tx.IsConfirmed && tx.From == walletAddress.WalletAddress && transactionTime.After(walletAddress.AllocatedAt)
 	case "BTC":
 		return tx.From == walletAddress.WalletAddress && transactionTime.After(walletAddress.AllocatedAt)
 	default:
