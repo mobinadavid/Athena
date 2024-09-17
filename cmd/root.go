@@ -3,7 +3,6 @@ package cmd
 import (
 	"athena/cmd/app"
 	"athena/cmd/database"
-	"athena/cmd/wallet_address"
 	"athena/src/config"
 	"github.com/spf13/cobra"
 )
@@ -24,7 +23,6 @@ func init() {
 	rootCmd.AddCommand(
 		app.AppCmd,
 		database.DatabaseCmd,
-		wallet_address.WalletAddressCmd,
 	)
 }
 

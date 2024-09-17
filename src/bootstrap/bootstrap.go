@@ -4,6 +4,9 @@ import (
 	"athena/src/api"
 	"athena/src/database"
 	"athena/src/pkg/i18n"
+	"athena/src/pkg/vault"
+	"athena/src/worker"
+	"context"
 	"log"
 	"os"
 	"os/signal"
@@ -11,6 +14,10 @@ import (
 )
 
 func Init() (err error) {
+	// Create a context that will be canceled on shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	defer func() {
 		log.Println("Goodbye!")
 		os.Exit(0)
@@ -35,6 +42,19 @@ func Init() (err error) {
 			log.Fatalf("Failed to close database connection: %v", err)
 		}
 	}()
+
+	//Initialize vault
+	if err := vault.Init(); err != nil {
+		log.Fatalln(err)
+	}
+	log.Println("Vault Service: Initialized Successfully.")
+
+	// Initialize worker with context
+	err = worker.Init(ctx)
+	if err != nil {
+		log.Fatalf("Worker Service: Failed to Initialize. %v", err)
+	}
+	log.Println("Worker Service: Initialized Successfully.")
 
 	// Initialize API
 	go func() {
