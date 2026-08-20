@@ -5,10 +5,11 @@ import (
 	"athena/src/api/http/routes"
 	"athena/src/config"
 	"fmt"
+	"log"
+
 	"github.com/gin-contrib/secure"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/sync/errgroup"
-	"log"
 )
 
 var (
@@ -85,6 +86,8 @@ func initServer() error {
 
 	v1 := router.Group("api/v1")
 	{
+		routes.AuthenticationRouter(v1)
+		routes.RegisterAccessTokenRouter(v1)
 		routes.BlockchainRouter(v1)
 		routes.WalletAddressRouter(v1)
 		routes.BlockchainExplorerRouter(v1)

@@ -8,21 +8,22 @@ import (
 	"athena/src/repositories"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"math"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type IWalletAddressService interface {
-	GetList(params *scopes.QueryBuilderModel) (*scopes.PaginateModel, error)
+	GetList(params *scopes.QueryBuilderModel) (*scopes.PaginatedModel, error)
 	Create(request *requests.CreateWalletAddressRequest) (*models.WalletAddress, error)
 	GetByUuid(uuid *uuid.UUID) (*models.WalletAddress, error)
 	Delete(uuid *uuid.UUID) error
 	Update(uuid *uuid.UUID, request *requests.CreateWalletAddressRequest) (*models.WalletAddress, error)
-	GetAllocatedList() (*scopes.PaginateModel, error)
-	GetTransactions(address *models.WalletAddress, page, limit uint) (*scopes.PaginateModel, error)
+	GetAllocatedList() (*scopes.PaginatedModel, error)
+	GetTransactions(address *models.WalletAddress, page, limit uint) (*scopes.PaginatedModel, error)
 	GetTransactionsList(walletAddress *models.WalletAddress) ([]*models.Transaction, error)
 	AllocateWalletAddresses(request *requests.AllocateWalletAddress) ([]string, error)
 	FilterTransactions(txs []*models.Transaction, walletAddress *models.WalletAddress) ([]*models.TransactionResponse, error)
@@ -34,7 +35,7 @@ type WalletAddressService struct {
 	IBlockchainExplorerService IBlockchainExplorerService
 }
 
-func (service *WalletAddressService) GetList(params *scopes.QueryBuilderModel) (*scopes.PaginateModel, error) {
+func (service *WalletAddressService) GetList(params *scopes.QueryBuilderModel) (*scopes.PaginatedModel, error) {
 	walletAddresses, count, err := service.IWalletAddressRepository.GetList(params)
 	if err != nil {
 		return nil, err
@@ -42,7 +43,7 @@ func (service *WalletAddressService) GetList(params *scopes.QueryBuilderModel) (
 
 	totalPages := int64(math.Ceil(float64(count) / float64(params.Limit)))
 
-	return &scopes.PaginateModel{
+	return &scopes.PaginatedModel{
 		Limit:       params.Limit,
 		CurrentPage: params.Page,
 		TotalPages:  totalPages,
@@ -89,13 +90,13 @@ func (service *WalletAddressService) AllocateWalletAddresses(request *requests.A
 	return walletAddressesName, nil
 }
 
-func (service *WalletAddressService) GetAllocatedList() (*scopes.PaginateModel, error) {
+func (service *WalletAddressService) GetAllocatedList() (*scopes.PaginatedModel, error) {
 	walletAddresses, err := service.IWalletAddressRepository.GetAllocatedList()
 	if err != nil {
 		return nil, err
 	}
 
-	return &scopes.PaginateModel{
+	return &scopes.PaginatedModel{
 		Items: &walletAddresses,
 	}, nil
 
@@ -170,7 +171,7 @@ func (service *WalletAddressService) GetTransactionsList(walletAddress *models.W
 	return nil, fmt.Errorf("error fetching transactions %w", err)
 }
 
-func (service *WalletAddressService) GetTransactions(walletAddress *models.WalletAddress, page, limit uint) (*scopes.PaginateModel, error) {
+func (service *WalletAddressService) GetTransactions(walletAddress *models.WalletAddress, page, limit uint) (*scopes.PaginatedModel, error) {
 	//to check walletAddress is allocated and active
 	isAllocated, err := service.IWalletAddressRepository.IsAllocated(walletAddress)
 	if err != nil {
@@ -208,7 +209,7 @@ func (service *WalletAddressService) GetTransactions(walletAddress *models.Walle
 	totalItems := int64(len(filteredTxs))
 	totalPages := int64(math.Ceil(float64(totalItems) / float64(limit)))
 
-	return &scopes.PaginateModel{
+	return &scopes.PaginatedModel{
 		TotalItems:  totalItems,
 		TotalPages:  totalPages,
 		CurrentPage: page,

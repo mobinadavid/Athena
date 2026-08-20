@@ -7,10 +7,11 @@ import (
 	"athena/src/pkg/i18n"
 	"athena/src/pkg/validator"
 	"athena/src/services"
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type WalletAddressController struct {
@@ -18,7 +19,7 @@ type WalletAddressController struct {
 }
 
 func (controller *WalletAddressController) GetList(c *gin.Context) {
-	var walletAddress *scopes.PaginateModel
+	var walletAddress *scopes.PaginatedModel
 	filters := make(map[string]interface{})
 	for key, values := range c.Request.URL.Query() {
 		if key != "page" && key != "limit" && key != "sort_by" && key != "sort_order" && key != "created_after" && key != "created_before" {
