@@ -2,6 +2,7 @@ package validator
 
 import (
 	"athena/src/pkg/i18n"
+	"athena/src/pkg/policies"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -20,6 +21,7 @@ func RegisterRules(val *validator.Validate, trans *ut.UniversalTranslator) {
 		"iranian-national-identity-code": iranianNationalCodeValidation,
 		"iranian-mobile":                 iranianMobileValidation,
 		"max-runes":                      validateMaxRunes,
+		"is-strong-password":             isStrongPassword,
 	}
 
 	for ruleName, ruleFunc := range ruleToFunc {
@@ -138,4 +140,18 @@ func validateMaxRunes(fl validator.FieldLevel) bool {
 
 	// Check if the count is within the max
 	return count <= maximum
+}
+
+func isStrongPassword(fl validator.FieldLevel) bool {
+	passwordPolicy := &policies.PasswordPolicy{
+		MinLength:        8,
+		RequireUppercase: true,
+		RequireLowercase: true,
+		RequireDigit:     true,
+		RequireSpecial:   true,
+	}
+
+	policyCheck := passwordPolicy.ValidatePassword(fl.Field().String())
+
+	return policyCheck == nil
 }

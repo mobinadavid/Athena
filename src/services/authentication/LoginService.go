@@ -269,9 +269,6 @@ func (service *LoginService) ResendLoginOTP(ctx context.Context) error {
 		return errs.SomeThingWentWrong
 	}
 	nationalCode := resp.NationalIdentityCode
-	if resp.NationalCompanyId != "" {
-		nationalCode = resp.NationalCompanyId
-	}
 	ctx = context.WithValue(ctx, consts.NationalIdentityCode, nationalCode)
 
 	user, err := service.UserService.GetByNationalIdentityCode(ctx, resp.NationalIdentityCode)

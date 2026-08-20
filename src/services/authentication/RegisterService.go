@@ -145,6 +145,8 @@ func (service *RegisterService) VerifyRegisterOTPViaRedisKey(ctx context.Context
 		NationalIdentityCode: resp.NationalIdentityCode,
 		Mobile:               resp.Mobile,
 		Password:             resp.Password,
+		FirstName:            resp.FirstName,
+		LastName:             resp.LastName,
 		IsActive:             true,
 	})
 	if err != nil {

@@ -107,9 +107,7 @@ func (controller *LoginController) LoginViaOtpSendOtp(c *gin.Context) {
 
 	ctx := context.WithValue(context.Background(), "req", &req)
 	nationalCode := req.NationalIdentityCode
-	if req.NationalCompanyId != "" {
-		nationalCode = req.NationalCompanyId
-	}
+
 	ctx = context.WithValue(ctx, consts.NationalIdentityCode, nationalCode)
 	ctx = context.WithValue(ctx, consts.RequestUuid, c.GetString("request-uuid"))
 	ctx = context.WithValue(ctx, consts.OwnerType, models.UserRole)
