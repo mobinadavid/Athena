@@ -7,6 +7,7 @@ import (
 	"athena/src/pkg/i18n"
 	"athena/src/pkg/validator"
 	"athena/src/services"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -280,4 +281,9 @@ func (controller *WalletAddressController) GetTransactions(c *gin.Context) {
 		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
 		Send()
 
+}
+
+func (controller *WalletAddressController) Webhook(c *gin.Context) {
+	hash := c.Param(":hash")
+	fmt.Println("received transaction", hash)
 }
