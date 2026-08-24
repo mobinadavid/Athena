@@ -1,8 +1,9 @@
 package scopes
 
 import (
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type QueryBuilderModel struct {
@@ -16,7 +17,7 @@ type QueryBuilderModel struct {
 	CreatedBefore *time.Time
 }
 
-type PaginateModel struct {
+type PaginatedModel struct {
 	Limit       uint        `json:"limit"`
 	CurrentPage uint        `json:"current_page"`
 	TotalPages  int64       `json:"total_pages"`

@@ -2,8 +2,9 @@ package response
 
 import (
 	"athena/src/pkg/i18n"
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 type Response struct {
@@ -14,6 +15,8 @@ type Response struct {
 	Message      string            `json:"message"`
 	Data         map[string]any    `json:"data,omitempty"`
 	Errors       map[string]string `json:"errors,omitempty"`
+	ErrorCode    int               `json:"error_code,omitempty"`
+	Log          bool              `json:"-"`
 }
 
 // Builder is the builder for constructing API responses
@@ -43,6 +46,12 @@ func (builder *Builder) SetStatusCode(statusCode int) *Builder {
 	return builder
 }
 
+// SetErrorCode sets the status code of the response
+func (builder *Builder) SetErrorCode(errorCode int) *Builder {
+	builder.response.ErrorCode = errorCode
+	return builder
+}
+
 // SetMessage sets the message of the response
 func (builder *Builder) SetMessage(message string) *Builder {
 	builder.response.Message = message
@@ -58,6 +67,12 @@ func (builder *Builder) SetData(data map[string]any) *Builder {
 // SetErrors sets the errors of the response
 func (builder *Builder) SetErrors(errors map[string]string) *Builder {
 	builder.response.Errors = errors
+	return builder
+}
+
+// SetLog log the response
+func (builder *Builder) SetLog() *Builder {
+	builder.response.Log = true
 	return builder
 }
 

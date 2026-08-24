@@ -4,11 +4,13 @@ import (
 	"athena/src/config"
 	"athena/src/models"
 	"athena/src/repositories"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/go-resty/resty/v2"
 	"strconv"
 	"time"
+
+	"github.com/go-resty/resty/v2"
 )
 
 type IDepositService interface {
@@ -73,7 +75,7 @@ func (service *DepositService) HandleDeposits() error {
 	return nil
 }
 
-func sendToWebhook(tx interface{}, webhookUrl string) error {
+func sendToWebhook(tx *models.TransactionResponse, webhookUrl string) error {
 	// Marshal the transaction data to JSON
 	txData, err := json.Marshal(tx)
 	if err != nil {
@@ -88,8 +90,9 @@ func sendToWebhook(tx interface{}, webhookUrl string) error {
 		SetTimeout(10 * time.Second).
 		SetRetryCount(maxRetry).
 		SetRetryWaitTime(5 * time.Second).
-		SetRetryMaxWaitTime(5 * time.Second)
+		SetRetryMaxWaitTime(5 * time.Second).SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 
+	webhookUrl = webhookUrl + "/" + tx.Hash
 	// Send a POST request
 	resp, err := client.R().
 		SetHeader("Content-Type", "application/json").

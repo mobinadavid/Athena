@@ -1,97 +1,202 @@
-version: '3'
-
 services:
-  # App
-  app:
-    build:
-      context: .
-      dockerfile: build/docker/app/Dockerfile
-    container_name: app.${APP_HOST}
-    restart: unless-stopped
-    volumes:
-      - ./build/certs/app:/etc/ssl/athena/certs:ro
-    tty: true
-    environment:
-      TZ: ${APP_TZ}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - athena
 
-  # Nginx
-  nginx:
-    image: nginx:stable-alpine
-    container_name: nginx.${APP_HOST}
-    restart: unless-stopped
-    ports:
-      - 8221:8221
-    tty: true
-    depends_on:
-      - app
-    environment:
-      SERVER_NAME: ${APP_HOST}
-      SERVER_PORT: 8221
-      PROXY_PASS: https://app.${APP_HOST}:${APP_PORT}
-      TZ: ${APP_TZ}
-    volumes:
-      - ./build/certs/nginx:/etc/nginx/certs:ro
-      - ./build/docker/nginx:/etc/nginx/templates:ro
-    networks:
-      - athena
+  # app:
+  #   build:
+  #     context: .
+  #     dockerfile: build/docker/app/Dockerfile
+  #   container_name: app.${APP_HOST}
+  #   extra_hosts:
+  #     - "nexus-repo.omaxplatform.com:172.29.94.66"
+  #     - "cdn.omaxplatform.com:172.29.94.66"
+  #     - "notif.omaxplatform.com:172.29.94.66"
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./logs:/log-paresh-data
+  #   tty: true
+  #   environment:
+  #     TZ: ${APP_TZ}
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+  #     postgres:
+  #       condition: service_healthy
+  #     rabbitmq:
+  #       condition: service_healthy
+  #     vault:
+  #       condition: service_started
+  #   networks:
+  #     athena:
+  #       aliases:
+  #         - app-${APP_HOST}
 
-  # Postgres
+  # nginx:
+  #   image: docker-repo.omaxplatform.com/nginx:stable-alpine
+  #   container_name: nginx.${APP_HOST}
+  #   restart: unless-stopped
+  #   ports:
+  #     - "${NGINX_PORT}:${NGINX_PORT}"
+  #   tty: true
+  #   depends_on:
+  #     - app
+  #   environment:
+  #     SERVER_NAME: ${APP_HOST}
+  #     SERVER_PORT: ${NGINX_PORT}
+  #     USER_PROXY_PASS: http://app.${APP_HOST}:${USER_APP_PORT}
+  #     ADMIN_PROXY_PASS: http://app.${APP_HOST}:${ADMIN_APP_PORT}
+  #     TZ: ${APP_TZ}
+  #   volumes:
+  #     - ./build/certs/nginx:/etc/nginx/certs:ro
+  #     - ./build/docker/nginx:/etc/nginx/templates:ro
+  #   networks:
+  #     athena:
+  #       aliases:
+  #         - nginx-${APP_HOST}
+
   postgres:
-    image: postgres:alpine
-    container_name: postgres.${APP_HOST}
+    image: docker-repo.omaxplatform.com/postgres:alpine
+    container_name: postgresql.${APP_HOST}
     restart: unless-stopped
+
+    ports:
+      - "${DB_PORT}:5432"
+
     environment:
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_DATABASE}
       TZ: ${APP_TZ}
+
     volumes:
-      - ./build/certs/postgresql:/var/lib/postgresql/certs:ro
       - ./build/docker/postgresql/postgres.conf:/etc/postgresql.conf:ro
       - ./build/docker/postgresql/pg_hba.conf:/etc/pg_hba.conf:ro
       - ./build/docker/postgresql/postgres-init.sh:/docker-entrypoint-initdb.d/postgres-init.sh:ro
-      - postgres:/var/lib/postgresql/data
-    command: [ "postgres", "-c", "config_file=/etc/postgresql.conf", "-c", "hba_file=/etc/pg_hba.conf" ]
+      - postgres-athena-data:/var/lib/postgresql/data
+
+    command:
+      [
+        "postgres",
+        "-c",
+        "config_file=/etc/postgresql.conf",
+        "-c",
+        "hba_file=/etc/pg_hba.conf"
+      ]
+
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${DB_USERNAME}" ]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME}"]
       interval: 10s
       timeout: 5s
       retries: 5
+
     networks:
-      - athena
+      athena:
+        aliases:
+          - postgres-${APP_HOST}
+
+  redis:
+    image: docker-repo.omaxplatform.com/redis:alpine
+    container_name: redis.${APP_HOST}
+    restart: unless-stopped
+
+    ports:
+      - "${REDIS_PORT}:6379"
+
+    command:
+      - redis-server
+      - /usr/local/etc/redis/redis.conf
+      - --requirepass
+      - "${REDIS_PASSWORD}"
+
+    volumes:
+      - ./build/docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - redis-athena-data:/data
+
+    tty: true
+
+    environment:
+      TZ: ${APP_TZ}
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "redis-cli -a '${REDIS_PASSWORD}' ping | grep PONG"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      athena:
+        aliases:
+          - redis-${APP_HOST}
+
+  rabbitmq:
+    image: docker-repo.omaxplatform.com/rabbitmq:management-alpine
+    container_name: rabbitmq.${APP_HOST}
+    restart: unless-stopped
+
+    ports:
+      - "${RABBITMQ_PORT}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT}:15672"
+
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-app}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-app}
+      TZ: ${APP_TZ}
+
+    volumes:
+      - ./build/docker/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - rabbitmq-athena-data:/var/lib/rabbitmq
+
+    tty: true
+
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmqctl status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      athena:
+        aliases:
+          - rabbitmq-${APP_HOST}
 
   # Vault
   vault:
-    image: vault:1.13.3
+    image: hashicorp/vault:latest
     container_name: vault.${APP_HOST}
     restart: unless-stopped
+
     ports:
-      - ${VAULT_PORT:-8200}:8200
+      - "${VAULT_PORT}:8200"
+
     environment:
-      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
-      VAULT_ADDR: ${VAULT_HOST}:${VAULT_PORT}
+      VAULT_ADDR: http://0.0.0.0:8200
       TZ: ${APP_TZ}
-    cap_add:
-      - IPC_LOCK
+
+    command:
+      - vault
+      - server
+      - -config=/vault/config/config.hcl
+
     volumes:
-      - ./build/certs/vault:/etc/vault/certs:ro
-      - ./build/docker/vault:/vault/config:ro
+      - ./build/docker/vault/config.hcl:/vault/config/config.hcl:ro
       - vault-data:/vault/data
-    command: server
+
     networks:
-      - athena
+      athena:
+        aliases:
+          - vault-${APP_HOST}
 
-# Persistent Volumes
 volumes:
-  postgres:
+  postgres-athena-data:
+  redis-athena-data:
+  rabbitmq-athena-data:
   vault-data:
+  log-athena-data:
 
-# Networks
 networks:
   athena:
+    external: true
+    name: ${APP_NAME}
     driver: bridge

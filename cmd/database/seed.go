@@ -2,8 +2,9 @@ package database
 
 import (
 	"athena/src/database/seeders"
-	"github.com/spf13/cobra"
 	"log"
+
+	"github.com/spf13/cobra"
 )
 
 var seedCmd = &cobra.Command{
@@ -18,6 +19,7 @@ var seedRunCmd = &cobra.Command{
 		log.Println("Running seeders")
 		seeders.SeedBlockchain()
 		seeders.SeedExplorer()
+		seeders.SeedUsers()
 		log.Println("Database has seeded successfully!")
 	},
 }

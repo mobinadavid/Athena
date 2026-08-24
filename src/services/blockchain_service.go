@@ -5,12 +5,13 @@ import (
 	"athena/src/database/scopes"
 	"athena/src/models"
 	"athena/src/repositories"
-	"github.com/google/uuid"
 	"math"
+
+	"github.com/google/uuid"
 )
 
 type IBlockChainService interface {
-	GetList(params *scopes.QueryBuilderModel) (*scopes.PaginateModel, error)
+	GetList(params *scopes.QueryBuilderModel) (*scopes.PaginatedModel, error)
 	Create(request *requests.CreateBlockchainRequest) (*models.Blockchain, error)
 	GetByUuid(uuid *uuid.UUID) (*models.Blockchain, error)
 	Delete(uuid *uuid.UUID) error
@@ -22,7 +23,7 @@ type BlockchainService struct {
 	IBlockchainRepository repositories.IBlockchainRepository
 }
 
-func (service *BlockchainService) GetList(params *scopes.QueryBuilderModel) (*scopes.PaginateModel, error) {
+func (service *BlockchainService) GetList(params *scopes.QueryBuilderModel) (*scopes.PaginatedModel, error) {
 	blockchains, count, err := service.IBlockchainRepository.GetList(params)
 	if err != nil {
 		return nil, err
@@ -30,7 +31,7 @@ func (service *BlockchainService) GetList(params *scopes.QueryBuilderModel) (*sc
 
 	totalPages := int64(math.Ceil(float64(count) / float64(params.Limit)))
 
-	return &scopes.PaginateModel{
+	return &scopes.PaginatedModel{
 		Limit:       params.Limit,
 		CurrentPage: params.Page,
 		TotalPages:  totalPages,

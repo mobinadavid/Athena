@@ -8,6 +8,8 @@ package providers
 
 import (
 	"athena/src/api/http/controllers"
+	"athena/src/api/http/controllers/authentication"
+	"athena/src/api/http/middlewares"
 	"athena/src/database"
 	"athena/src/services"
 )
@@ -42,13 +44,50 @@ func GetContainer() *Container {
 	return container
 }
 
+func GetAuthenticationContainer() *AuthenticationContainer {
+	databaseDatabase := database.GetInstance()
+	userRepository := ProvideUserRepository(databaseDatabase)
+	userService := ProvideUserService(userRepository)
+	otpService := ProvideOTPService()
+	registerService := ProvideRegisterService(userService, otpService)
+	registerController := ProvideUserRegisterController(registerService)
+	jwtService := ProvideJwtService()
+	accessTokenRepository := ProvideAccessTokenRepository(databaseDatabase)
+	accessTokenService := ProvideAccessTokenService(accessTokenRepository, jwtService, userRepository)
+	twoFaService := ProvideTwoFaService()
+	loginService := ProvideLoginService(userService, jwtService, accessTokenService, twoFaService, otpService)
+	loginController := ProvideUserLoginController(loginService)
+	accessTokenController := ProvideUserAccessTokenController(accessTokenService)
+	recoveryPasswordService := ProvideRecoveryPasswordService(otpService, userService)
+	recoverPasswordController := ProvideUserRecoverPasswordController(recoveryPasswordService)
+	authenticationMiddleware := ProvideAuthenticationMiddleware(accessTokenService)
+	authenticationContainer := &AuthenticationContainer{
+		UserRegisterController:         registerController,
+		UserLoginController:            loginController,
+		UserAccessTokenController:      accessTokenController,
+		UserRecoveryPasswordController: recoverPasswordController,
+		AuthenticationMiddleware:       authenticationMiddleware,
+	}
+	return authenticationContainer
+}
+
 // wire.go:
 
-type Container struct {
-	BlockchainController         *controllers.BlockchainController
-	WalletAddressController      *controllers.WalletAddressController
-	BlockchainExplorerController *controllers.BlockchainExplorerController
-	IpgController                *controllers.IpgController
-	DepositService               *services.DepositService
-	IgpService                   *services.IGPService
-}
+type (
+	Container struct {
+		BlockchainController         *controllers.BlockchainController
+		WalletAddressController      *controllers.WalletAddressController
+		BlockchainExplorerController *controllers.BlockchainExplorerController
+		IpgController                *controllers.IpgController
+		DepositService               *services.DepositService
+		IgpService                   *services.IGPService
+	}
+
+	AuthenticationContainer struct {
+		UserRegisterController         *authentication.RegisterController
+		UserLoginController            *authentication.LoginController
+		UserAccessTokenController      *authentication.AccessTokenController
+		UserRecoveryPasswordController *authentication.RecoverPasswordController
+		AuthenticationMiddleware       *middlewares.AuthenticationMiddleware
+	}
+)
