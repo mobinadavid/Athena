@@ -10,6 +10,9 @@ create table if not exists users
     mobile                       varchar(100) not null,
     email                        varchar(100) default NULL::character varying,
     profile_image_uuid           varchar(100) default NULL::character varying,
+    totp_secret                  bytea default NULL,
+    totp_secret_url              bytea default NULL,
+    two_fa_enabled               boolean default false,
     created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at timestamp with time zone DEFAULT NULL

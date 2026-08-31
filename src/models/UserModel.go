@@ -5,22 +5,25 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
-
-const UserRole = "user"
 
 type UserModel struct {
 	ID       uint      `json:"id,omitempty" gorm:"primarykey"`
 	Uuid     uuid.UUID `json:"uuid,omitempty" gorm:"type:uuid;default:uuid_generate_v4(); uniqueIndex" filter:"true"`
 	IsActive bool      `json:"is_active,omitempty" gorm:"type:bool; default:true" filter:"true" like:"true"`
 	// Personal information.
-	FirstName        string     `json:"first_name,omitempty" gorm:"type:varchar(255); default:null" filter:"true" like:"true" sort:"true"`
-	LastName         string     `json:"last_name,omitempty" gorm:"type:varchar(255); default:null" filter:"true" like:"true" sort:"true"`
-	FullName         string     `json:"full_name,omitempty" gorm:"-" filter:"true" sort:"true"`
-	ProfileImageUuid string     `json:"-" gorm:"type:varchar(255)"`
-	ProfileImage     Attachment `json:"profile_image,omitempty" gorm:"-"`
-	Password         []byte     `json:"-" gorm:"type:text; default:null"`
+	FirstName        string         `json:"first_name,omitempty" gorm:"type:varchar(255); default:null" filter:"true" like:"true" sort:"true"`
+	LastName         string         `json:"last_name,omitempty" gorm:"type:varchar(255); default:null" filter:"true" like:"true" sort:"true"`
+	FullName         string         `json:"full_name,omitempty" gorm:"-" filter:"true" sort:"true"`
+	ProfileImageUuid string         `json:"-" gorm:"type:varchar(255)"`
+	ProfileImage     Attachment     `json:"profile_image,omitempty" gorm:"-"`
+	Password         []byte         `json:"-" gorm:"type:text; default:null"`
+	TotpSecret       []byte         `json:"-" gorm:"type:bytea; default:null"`
+	TotpSecretUrl    []byte         `json:"-" gorm:"type:bytea; default:null"`
+	TwoFaEnabled     bool           `json:"-" gorm:"type:bool;default:false"`
+	RecoveryCodes    pq.StringArray `gorm:"-"`
 	// Identities.
 	NationalIdentityCode string `json:"national_identity_code,omitempty" gorm:"type:varchar(255); uniqueIndex; default:null" filter:"true" like:"true"`
 	// Contact information.
@@ -28,6 +31,7 @@ type UserModel struct {
 	Email  string `json:"email,omitempty" gorm:"type:varchar(100); default:null" filter:"true" like:"true"`
 	// Relationships
 	AccessTokens []*AccessTokenModel `json:"-" gorm:"polymorphic:Owner;"`
+	Roles        []*RoleModel        `json:"roles,omitempty" gorm:"many2many:role_user"`
 	// Times
 	CreatedAt time.Time      `json:"created_at,omitempty" sort:"true"`
 	UpdatedAt time.Time      `json:"updated_at,omitempty" sort:"true"`

@@ -19,6 +19,10 @@ var seedRunCmd = &cobra.Command{
 		log.Println("Running seeders")
 		seeders.SeedBlockchain()
 		seeders.SeedExplorer()
+		seeders.SeedPermission()
+		seeders.SeedPermissionGroup()
+		seeders.SeedAuthorization()
+		seeders.SeedAdmins()
 		seeders.SeedUsers()
 		log.Println("Database has seeded successfully!")
 	},

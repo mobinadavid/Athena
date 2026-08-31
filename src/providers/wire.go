@@ -5,7 +5,7 @@ package providers
 
 import (
 	"athena/src/api/http/controllers"
-	userAuthenticationController "athena/src/api/http/controllers/authentication"
+	"athena/src/api/http/controllers/users/authentication"
 	"athena/src/api/http/middlewares"
 	"athena/src/database"
 	"athena/src/services"
@@ -24,10 +24,10 @@ type (
 	}
 
 	AuthenticationContainer struct {
-		UserRegisterController         *userAuthenticationController.RegisterController
-		UserLoginController            *userAuthenticationController.LoginController
-		UserAccessTokenController      *userAuthenticationController.AccessTokenController
-		UserRecoveryPasswordController *userAuthenticationController.RecoverPasswordController
+		UserRegisterController         *authentication.RegisterController
+		UserLoginController            *authentication.LoginController
+		UserAccessTokenController      *authentication.AccessTokenController
+		UserRecoveryPasswordController *authentication.RecoverPasswordController
 		AuthenticationMiddleware       *middlewares.AuthenticationMiddleware
 	}
 )
@@ -56,7 +56,6 @@ func GetAuthenticationContainer() *AuthenticationContainer {
 		// Services
 		ProvideRegisterService,
 		ProvideLoginService,
-		ProvideTwoFaService,
 		ProvideJwtService,
 		ProvideUserService,
 		ProvideAccessTokenService,

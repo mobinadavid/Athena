@@ -51,6 +51,16 @@ var (
 	InvalidInputForThisRequest   = errors.New("invalid-input-for-this-request")
 )
 
+// file
+var (
+	InvalidFormData               = NewAppError(errors.New("invalid-form-data"), SeverityLevelError)
+	CannotOpenFile                = NewAppError(errors.New("cannot-open-file"), SeverityLevelError)
+	CDNServiceIsTemporaryDown     = NewAppError(errors.New("cdn-service-is-temporary-down"), SeverityLevelError)
+	ErrTooManySimultaneousUploads = NewAppError(errors.New("too-many-simultaneous-uploads"), SeverityLevelWarn)
+	ErrFileSizeTooLarge           = NewAppError(errors.New("file-size-to-large"), SeverityLevelWarn)
+	ErrInvalidFileExtension       = NewAppError(errors.New("invalid-file-extension"), SeverityLevelWarn)
+)
+
 // authenticate
 var (
 	ErrAuthenticationFailed   = errors.New("auth-failed")
@@ -73,6 +83,14 @@ var (
 	OTPIsNotValid             = errors.New("otp-is-not-valid")
 	DuplicateUsername         = errors.New("duplicate-user")
 	InvalidRevokeTokenFlow    = errors.New("invalid_revoke_token_flow")
+)
+
+// authorization
+var (
+	DuplicatePermissionGroupName = NewAppError(errors.New("duplicate-permission-group-name"), SeverityLevelWarn)
+	DuplicateRoleName            = NewAppError(errors.New("duplicate-role-name"), SeverityLevelWarn)
+	CantDeletePermissionGroup    = NewAppError(errors.New("cant-delete-permission-group"), SeverityLevelInfo)
+	CantDeleteThisRole           = NewAppError(errors.New("cant-delete-this-role"), SeverityLevelInfo)
 )
 
 // token

@@ -8,7 +8,7 @@ package providers
 
 import (
 	"athena/src/api/http/controllers"
-	"athena/src/api/http/controllers/authentication"
+	"athena/src/api/http/controllers/users/authentication"
 	"athena/src/api/http/middlewares"
 	"athena/src/database"
 	"athena/src/services"
@@ -54,8 +54,7 @@ func GetAuthenticationContainer() *AuthenticationContainer {
 	jwtService := ProvideJwtService()
 	accessTokenRepository := ProvideAccessTokenRepository(databaseDatabase)
 	accessTokenService := ProvideAccessTokenService(accessTokenRepository, jwtService, userRepository)
-	twoFaService := ProvideTwoFaService()
-	loginService := ProvideLoginService(userService, jwtService, accessTokenService, twoFaService, otpService)
+	loginService := ProvideLoginService(userService, jwtService, accessTokenService, otpService)
 	loginController := ProvideUserLoginController(loginService)
 	accessTokenController := ProvideUserAccessTokenController(accessTokenService)
 	recoveryPasswordService := ProvideRecoveryPasswordService(otpService, userService)

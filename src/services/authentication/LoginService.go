@@ -2,7 +2,7 @@ package authentication
 
 import (
 	"athena/src/api/errs"
-	Authentication "athena/src/api/http/requests/authentication"
+	"athena/src/api/http/requests/authentication"
 	"athena/src/cache"
 	"athena/src/config"
 	"athena/src/hash"
@@ -28,7 +28,7 @@ type LoginService struct {
 	JwtService         IJwtService
 	AccessTokenService IAccessTokenService
 	OTPService         services.IOTPService
-	TwoFaService       ITwoFaService
+	AdminService       services.IAdminService
 	//ProfileService      services.IProfile
 	//NotificationService *services.NotificationProcessService
 }
@@ -40,12 +40,7 @@ type ILoginService interface {
 	UserLoginVerifyOTP(ctx context.Context) (*JwtDTO, error)
 	LoginViaOtpSendOtp(ctx context.Context) (string, error)
 	ResendLoginOTP(ctx context.Context) error
-	//GetSecretKey(ctx context.Context) (string, string, error)
-	//LoginVerifyTwoFaCodeFirstTime(ctx context.Context) (*JwtDTO, error)
-	//LoginVerifyTwoFaCode(ctx context.Context) (interface{}, bool, error)
-	///	ForceChangePassword(ctx context.Context) (*JwtDTO, error)
-	//	GetTotp(ctx context.Context) (string, string, error)
-	//	ForceChangePasswordForUser(ctx context.Context) (*JwtDTO, error)
+	AdminLoginViaPassword(ctx context.Context) (*JwtDTO, error)
 }
 
 func (service *LoginService) CheckUserCredentials(ctx context.Context, nationalIdentityCode, password, ownerType string) (int, error) {
@@ -362,371 +357,40 @@ func (service *LoginService) UserLoginVerifyOTP(ctx context.Context) (*JwtDTO, e
 	return jwtDTO, nil
 }
 
-// GetSecretKey for setting up two-factor authentication
-//func (service *LoginService) GetSecretKey(ctx context.Context) (string, string, error) {
-//	url, secret, err := service.TwoFaService.GetSecretKey(ctx)
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to enable two-factor secret", service, err)
-//		return "", "", errs.SomeThingWentWrong
-//	}
-//
-//	return url, secret, nil
-//}
-//
-// LoginVerifyTwoFaCodeFirstTime for setting up two-factor authentication
-//func (service *LoginService) LoginVerifyTwoFaCodeFirstTime(ctx context.Context) (*JwtDTO, error) {
-//	req, ok := ctx.Value("req").(*Authentication.VerifyTwoFa)
-//	if !ok {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to verify two-factor code", service, nil)
-//		return nil, errs.ErrAuthenticationFailed
-//	}
-//
-//	res, err := cache.GetInstance().GetClient().Get(context.Background(), req.LoginKey).Result()
-//	if err != nil {
-//		if utils.CheckError(err, redis.Nil) {
-//			logger.LogErrorWithFieldsV2(ctx, "failed to verify two-factor code", service, err)
-//			return nil, errs.ErrLoginTimeOut
-//		}
-//
-//		logger.LogErrorWithFieldsV2(ctx, "failed to verify two-factor code", service, err)
-//		return nil, errs.ErrAuthenticationFailed
-//	}
-//
-//	var resp Authentication.LoginRequest
-//	err = json.Unmarshal([]byte(res), &resp)
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to verify two-factor code", service, err)
-//		return nil, errs.ErrAuthenticationFailed
-//	}
-//	nationalCode := resp.NationalIdentityCode
-//	if resp.NationalCompanyId != "" {
-//		nationalCode = resp.NationalCompanyId
-//	}
-//	ctx = context.WithValue(ctx, consts.NationalIdentityCode, nationalCode)
-//
-//	// get user
-//	admin, err := service.AdminService.GetByNationalIdentityCode(ctx, resp.NationalIdentityCode)
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to get admin by national identity code", service, err)
-//		return nil, errs.ErrAuthenticationFailed
-//	}
-//
-//	err = service.TwoFaService.VerifyCodeFirstTime(ctx, admin.ID, req.TwoFaCode)
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to verify two-factor code", service, err)
-//		return nil, errs.ErrAuthenticationFailed
-//	}
-//
-//	//generate token
-//	ownerType := "admin"
-//	jwtDTO, err := service.JwtService.Generate(ctx, ownerType)
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to generate jwt", service, err)
-//		return nil, errs.ErrAuthenticationFailed
-//	}
-//
-//	// Store tokens in database
-//	ip := ctx.Value("request-ip").(string)
-//	userAgent := ctx.Value("request-user-agent").(string)
-//	_, err = service.AccessTokenService.Create(ctx, admin, jwtDTO, ip, userAgent)
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to verify two-factor code", service, err)
-//		return nil, errs.ErrAuthenticationFailed
-//	}
-//
-//	return jwtDTO, nil
-//
-//}
-//
-//func (service *LoginService) LoginVerifyTwoFaCode(ctx context.Context) (interface{}, bool, error) {
-//	req, ok := ctx.Value("req").(*Authentication.VerifyTwoFa)
-//	if !ok {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to verify two-factor code", service, nil)
-//		return nil, false, errs.ErrAuthenticationFailed
-//	}
-//
-//	res, err := cache.GetInstance().GetClient().Get(context.Background(), req.LoginKey).Result()
-//	if err != nil {
-//		if utils.CheckError(err, redis.Nil) {
-//			logger.LogErrorWithFieldsV2(ctx, "failed to verify two-factor code", service, err)
-//			return nil, false, errs.ErrLoginTimeOut
-//		}
-//
-//		logger.LogErrorWithFieldsV2(ctx, "failed to verify two-factor code", service, err)
-//		return nil, false, errs.ErrAuthenticationFailed
-//	}
-//
-//	var resp Authentication.LoginRequest
-//	err = json.Unmarshal([]byte(res), &resp)
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to verify two-factor code", service, err)
-//		return nil, false, errs.ErrAuthenticationFailed
-//	}
-//	nationalCode := resp.NationalIdentityCode
-//	if resp.NationalCompanyId != "" {
-//		nationalCode = resp.NationalCompanyId
-//	}
-//	ctx = context.WithValue(ctx, consts.NationalIdentityCode, nationalCode)
-//
-//	// get user
-//	var admin *models.AdminModel
-//	if resp.NationalIdentityCode != "" { // login by national id
-//		adminIn, err := service.AdminService.GetByNationalIdentityCode(ctx, resp.NationalIdentityCode)
-//		if err != nil {
-//			logger.LogErrorWithFieldsV2(ctx, "failed to get admin by national identity code", service, err)
-//			return nil, false, errs.ErrAuthenticationFailed
-//		}
-//		admin = adminIn
-//	} else { // login by username
-//		adminIn, err := service.AdminService.GetByUsername(ctx, resp.Username)
-//		if err != nil {
-//			logger.LogErrorWithFieldsV2(ctx, "failed to get admin by username", service, err)
-//			return nil, false, errs.ErrAuthenticationFailed
-//		}
-//		admin = adminIn
-//	}
-//
-//	if *admin.IsFirstLogin {
-//		err = service.TwoFaService.VerifyCodeFirstTime(ctx, admin.ID, req.TwoFaCode)
-//		if err != nil {
-//			logger.LogErrorWithFieldsV2(ctx, "failed to verify two-factor code first time", service, err)
-//			return nil, *admin.IsFirstLogin, err
-//		}
-//		return nil, *admin.IsFirstLogin, nil
-//	}
-//	err = service.TwoFaService.VerifyCode(ctx, admin.ID, req.TwoFaCode)
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to verify two-factor code", service, err)
-//		return nil, *admin.IsFirstLogin, errs.ErrAuthenticationFailed
-//	}
-//
-//	//generate token
-//	ownerType := "admin"
-//	jwtDTO, err := service.JwtService.Generate(ctx, ownerType)
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to generate jwt", service, err)
-//		return nil, *admin.IsFirstLogin, errs.ErrAuthenticationFailed
-//	}
-//
-//	// Store tokens in database
-//	ip := ctx.Value("request-ip").(string)
-//	userAgent := ctx.Value("request-user-agent").(string)
-//	_, err = service.AccessTokenService.Create(ctx, admin, jwtDTO, ip, userAgent)
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to verify two-factor code", service, err)
-//		return nil, *admin.IsFirstLogin, errs.ErrAuthenticationFailed
-//	}
-//
-//	return jwtDTO, *admin.IsFirstLogin, nil
-//
-//}
-//
-//func (service *LoginService) ForceChangePassword(ctx context.Context) (*JwtDTO, error) {
-//	req, ok := ctx.Value("req").(Authentication.ChangePasswordRequest)
-//	if !ok {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to save the change password state and send otp", service, nil)
-//		return nil, errs.ChangePasswordFailed
-//	}
-//
-//	redisData, err := cache.GetInstance().GetClient().Get(context.Background(), req.LoginKey).Result()
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to save the change password state and send otp", service, err)
-//		return nil, errs.SomeThingWentWrong
-//	}
-//	var resp *Authentication.LoginRequest
-//	err = json.Unmarshal([]byte(redisData), &resp)
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to unmarshal data from redis", service, err)
-//		return nil, errs.SomeThingWentWrong
-//	}
-//
-//	nationalCode := resp.NationalIdentityCode
-//	if resp.NationalCompanyId != "" {
-//		nationalCode = resp.NationalCompanyId
-//	}
-//	if nationalCode != "" {
-//		ctx = context.WithValue(ctx, consts.NationalIdentityCode, nationalCode)
-//	}
-//	if resp.Username != "" {
-//		ctx = context.WithValue(ctx, consts.Username, resp.Username)
-//	}
-//
-//	var admin *models.AdminModel
-//	if resp.NationalIdentityCode != "" { // login by national id
-//		adminIn, err := service.AdminService.GetByNationalIdentityCode(ctx, resp.NationalIdentityCode)
-//		if err != nil {
-//			logger.LogErrorWithFieldsV2(ctx, "failed to get admin by national identity code", service, err)
-//			return nil, errs.ErrAuthenticationFailed
-//		}
-//		admin = adminIn
-//	} else { // login by username
-//		adminIn, err := service.AdminService.GetByUsername(ctx, resp.Username)
-//		if err != nil {
-//			logger.LogErrorWithFieldsV2(ctx, "failed to get admin by username", service, err)
-//			return nil, errs.ErrAuthenticationFailed
-//		}
-//		admin = adminIn
-//	}
-//	passwordHashCheck, err := hash.VerifyStoredHash(admin.Password, req.NewPassword)
-//	if err != nil || passwordHashCheck {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to verify password", service, nil)
-//		return nil, errs.PasswordShouldBeNew
-//	}
-//
-//	admin.Password = []byte(req.NewPassword)
-//	isFirstLogin := false
-//	admin.IsFirstLogin = &isFirstLogin
-//	_, err = service.AdminService.Update(ctx, admin)
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to update admin", service, err)
-//		return nil, errs.SomeThingWentWrong
-//	}
-//
-//	ownerType := "admin"
-//	jwtDTO, err := service.JwtService.Generate(ctx, ownerType)
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to generate jwt", service, err)
-//		return nil, errs.ErrAuthenticationFailed
-//	}
-//
-//	// Store tokens in database
-//	ip := ctx.Value("request-ip").(string)
-//	userAgent := ctx.Value("request-user-agent").(string)
-//	_, err = service.AccessTokenService.Create(ctx, admin, jwtDTO, ip, userAgent)
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to verify two-factor code", service, err)
-//		return nil, errs.ErrAuthenticationFailed
-//	}
-//
-//	return jwtDTO, nil
-//
-//}
-//
-//func (service *LoginService) GetTotp(ctx context.Context) (string, string, error) {
-//	loginKey := ctx.Value("login_key").(string)
-//	redisData, err := cache.GetInstance().GetClient().Get(context.Background(), loginKey).Result()
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to save the change password state and send otp", service, err)
-//		return "", "", errs.SomeThingWentWrong
-//	}
-//	var resp *Authentication.LoginRequest
-//	err = json.Unmarshal([]byte(redisData), &resp)
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to unmarshal data from redis", service, err)
-//		return "", "", errs.SomeThingWentWrong
-//	}
-//
-//	nationalCode := resp.NationalIdentityCode
-//	if resp.NationalCompanyId != "" {
-//		nationalCode = resp.NationalCompanyId
-//	}
-//	if nationalCode != "" {
-//		ctx = context.WithValue(ctx, consts.NationalIdentityCode, nationalCode)
-//	}
-//	if resp.Username != "" {
-//		ctx = context.WithValue(ctx, consts.Username, resp.Username)
-//	}
-//
-//	var admin *models.AdminModel
-//	if resp.NationalIdentityCode != "" { // login by national id
-//		adminIn, err := service.AdminService.GetByNationalIdentityCode(ctx, resp.NationalIdentityCode)
-//		if err != nil {
-//			logger.LogErrorWithFieldsV2(ctx, "failed to get admin by national identity code", service, err)
-//			return "", "", errs.ErrAuthenticationFailed
-//		}
-//		admin = adminIn
-//	} else { // login by username
-//		adminIn, err := service.AdminService.GetByUsername(ctx, resp.Username)
-//		if err != nil {
-//			logger.LogErrorWithFieldsV2(ctx, "failed to get admin by username", service, err)
-//			return "", "", errs.ErrAuthenticationFailed
-//		}
-//		admin = adminIn
-//	}
-//	decryptedSecret, err := encrypt.GetInstance().Decrypt(admin.TotpSecret)
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to decrypt secret", service, err)
-//		return "", "", errs.SomeThingWentWrong
-//	}
-//	decryptedSecretUrl, err := encrypt.GetInstance().Decrypt(admin.TotpSecretUrl)
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to decrypt secret url", service, err)
-//		return "", "", errs.SomeThingWentWrong
-//	}
-//
-//	return string(decryptedSecret), string(decryptedSecretUrl), nil
-//}
-//
-//func (service *LoginService) ForceChangePasswordForUser(ctx context.Context) (*JwtDTO, error) {
-//
-//	loginKey, ok := ctx.Value("login_key").(string)
-//	if !ok || loginKey == "" {
-//		logger.LogErrorWithFieldsV2(ctx, "login_key not found in context", service, nil)
-//		return nil, errs.ChangePasswordFailed
-//	}
-//
-//	redisData, err := cache.GetInstance().
-//		GetClient().
-//		Get(context.Background(), loginKey).
-//		Result()
-//
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to get login_key from redis", service, err)
-//		return nil, errs.SomeThingWentWrong
-//	}
-//
-//	var loginReq Authentication.LoginRequest
-//	err = json.Unmarshal([]byte(redisData), &loginReq)
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to unmarshal redis data", service, err)
-//		return nil, errs.SomeThingWentWrong
-//	}
-//
-//	user, err := service.UserService.GetByNationalIdentityCode(ctx, loginReq.NationalIdentityCode)
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to get user by national identity code", service, err)
-//		return nil, errs.ErrAuthenticationFailed
-//	}
-//
-//	req, ok := ctx.Value("req").(*Authentication.ForceChangePasswordUserRequest)
-//	if !ok {
-//		logger.LogErrorWithFieldsV2(ctx, "invalid force change password request", service, nil)
-//		return nil, errs.ChangePasswordFailed
-//	}
-//
-//	passwordHashCheck, err := hash.VerifyStoredHash(user.Password, req.NewPassword)
-//	if err != nil || passwordHashCheck {
-//		logger.LogErrorWithFieldsV2(ctx, "new password must be different from old", service, nil)
-//		return nil, errs.PasswordShouldBeNew
-//	}
-//
-//	user.Password = []byte(req.NewPassword)
-//
-//	isFirstLogin := false
-//	user.IsFirstLogin = &isFirstLogin
-//
-//	_, err = service.UserService.Update(ctx, user)
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to update user", service, err)
-//		return nil, errs.SomeThingWentWrong
-//	}
-//
-//	jwtDTO, err := service.JwtService.Generate(ctx, "user")
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to generate jwt", service, err)
-//		return nil, errs.ErrAuthenticationFailed
-//	}
-//
-//	ip := ctx.Value("request-ip").(string)
-//	userAgent := ctx.Value("request-user-agent").(string)
-//
-//	_, err = service.AccessTokenService.Create(ctx, user, jwtDTO, ip, userAgent)
-//	if err != nil {
-//		logger.LogErrorWithFieldsV2(ctx, "failed to store token", service, err)
-//		return nil, errs.ErrAuthenticationFailed
-//	}
-//
-//	cache.GetInstance().GetClient().Del(context.Background(), loginKey)
-//
-//	return jwtDTO, nil
-//}
+func (service *LoginService) AdminLoginViaPassword(ctx context.Context) (*JwtDTO, error) {
+	req, ok := ctx.Value("req").(*Authentication.LoginRequest)
+	if !ok {
+		logger.LogErrorWithFieldsV2(ctx, "failed to read login request", service, nil)
+		return nil, errs.ErrAuthenticationFailed
+	}
+
+	user, err := service.AdminService.GetByNationalIdentityCode(ctx, req.NationalIdentityCode)
+	if err != nil {
+		logger.LogErrorWithFieldsV2(ctx, "user not found with NIC", service, err)
+		return nil, errs.ErrAuthenticationFailed
+	}
+
+	passwordOK, err := hash.VerifyStoredHash(user.Password, req.Password)
+	if err != nil || !passwordOK {
+		logger.LogErrorWithFieldsV2(ctx, "password mismatch", service, err)
+		return nil, errs.ErrAuthenticationFailed
+	}
+
+	ownerType := "admin"
+	jwtDTO, err := service.JwtService.Generate(ctx, ownerType)
+	if err != nil {
+		logger.LogErrorWithFieldsV2(ctx, "jwt generation failed", service, err)
+		return nil, errs.ErrAuthenticationFailed
+	}
+
+	ip := ctx.Value("request-ip").(string)
+	userAgent := ctx.Value("request-user-agent").(string)
+
+	_, err = service.AccessTokenService.Create(ctx, user, jwtDTO, ip, userAgent)
+	if err != nil {
+		logger.LogErrorWithFieldsV2(ctx, "db token insert failed", service, err)
+		return nil, errs.ErrAuthenticationFailed
+	}
+
+	return jwtDTO, nil
+}

@@ -1,7 +1,7 @@
 package providers
 
 import (
-	userAuthcontrollers "athena/src/api/http/controllers/authentication"
+	userAuthcontrollers "athena/src/api/http/controllers/users/authentication"
 	"athena/src/database"
 	"athena/src/repositories"
 	"athena/src/services/authentication"

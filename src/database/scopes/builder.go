@@ -496,3 +496,43 @@ func (bm *BuilderModel) CreatePaginateModel(db *gorm.DB, result interface{}) (*P
 		Items:       result,
 	}, nil
 }
+
+func (bm *BuilderModel) QueryBuilderScopeWithRoleAdminM2M(db *gorm.DB, roleNames []string) (*gorm.DB, error) {
+	// Validate and set default pagination parameters
+	bm.validatePaginationParams()
+
+	// Apply filters and sorting
+	db = bm.applyJoins(db)
+	db = bm.applyFilters(db)
+	db = bm.applyRelations(db)
+
+	if roleNames != nil && len(roleNames) > 0 {
+		db.Joins("INNER JOIN admin_role ON admin_role.admin_model_id = admins.id").
+			Joins("INNER JOIN roles ON roles.id = admin_role.role_model_id").
+			Where("roles.name IN ?", roleNames).
+			Preload("Roles")
+	}
+
+	db = bm.applyLikes(db)
+	db = bm.applyGlobalSearch(db)
+	db = bm.applySorting(db)
+
+	// Get total items count
+	totalItems, err := bm.getTotalItems(db)
+	if err != nil {
+		return nil, err
+	}
+	bm.TotalItems = totalItems
+
+	// Calculate total pages
+	totalPages := (totalItems + int64(bm.PageSize) - 1) / int64(bm.PageSize)
+	if bm.Page > uint(totalPages) && totalPages > 0 {
+		return nil, errors.New("requested page exceeds total number of pages")
+	}
+
+	// Calculate offset and apply pagination
+	offset := bm.calculateOffset()
+	db = db.Offset(offset).Limit(int(bm.PageSize))
+
+	return db, nil
+}
