@@ -8,6 +8,8 @@ package providers
 
 import (
 	"athena/src/api/http/controllers"
+	"athena/src/api/http/controllers/admins"
+	authentication2 "athena/src/api/http/controllers/admins/authentication"
 	"athena/src/api/http/controllers/users/authentication"
 	"athena/src/api/http/middlewares"
 	"athena/src/database"
@@ -54,20 +56,75 @@ func GetAuthenticationContainer() *AuthenticationContainer {
 	jwtService := ProvideJwtService()
 	accessTokenRepository := ProvideAccessTokenRepository(databaseDatabase)
 	accessTokenService := ProvideAccessTokenService(accessTokenRepository, jwtService, userRepository)
-	loginService := ProvideLoginService(userService, jwtService, accessTokenService, otpService)
+	adminRepository := ProvideAdminRepository(databaseDatabase)
+	roleRepository := ProvideRoleRepository(databaseDatabase)
+	adminService := ProvideAdminService(adminRepository, roleRepository, otpService)
+	loginService := ProvideLoginService(userService, jwtService, accessTokenService, otpService, adminService)
 	loginController := ProvideUserLoginController(loginService)
 	accessTokenController := ProvideUserAccessTokenController(accessTokenService)
-	recoveryPasswordService := ProvideRecoveryPasswordService(otpService, userService)
+	recoveryPasswordService := ProvideRecoveryPasswordService(otpService, userService, adminService)
 	recoverPasswordController := ProvideUserRecoverPasswordController(recoveryPasswordService)
+	twoFaService := ProvideTwoFactorService(userService, otpService)
+	twoFAController := ProvideUserTwoFactorAutController(twoFaService)
+	authenticationLoginController := ProvideAdminLoginController(loginService, accessTokenService)
+	authenticationTwoFAController := ProvideAdminTwoFactorAutController(twoFaService)
+	adminsAccessTokenController := ProvideAdminAccessTokenController(accessTokenService)
+	passwordRecoveryController := ProvideAdminPasswordRecoveryController(recoveryPasswordService)
 	authenticationMiddleware := ProvideAuthenticationMiddleware(accessTokenService)
 	authenticationContainer := &AuthenticationContainer{
-		UserRegisterController:         registerController,
-		UserLoginController:            loginController,
-		UserAccessTokenController:      accessTokenController,
-		UserRecoveryPasswordController: recoverPasswordController,
-		AuthenticationMiddleware:       authenticationMiddleware,
+		UserRegisterController:          registerController,
+		UserLoginController:             loginController,
+		UserAccessTokenController:       accessTokenController,
+		UserRecoveryPasswordController:  recoverPasswordController,
+		UserTwoFaAuthController:         twoFAController,
+		AdminLoginController:            authenticationLoginController,
+		AdminTwoFaAuthController:        authenticationTwoFAController,
+		AdminAccessTokenController:      adminsAccessTokenController,
+		AdminRecoveryPasswordController: passwordRecoveryController,
+		AuthenticationMiddleware:        authenticationMiddleware,
 	}
 	return authenticationContainer
+}
+
+func GetAdminContainer() *AdminContainer {
+	databaseDatabase := database.GetInstance()
+	adminRepository := ProvideAdminRepository(databaseDatabase)
+	roleRepository := ProvideRoleRepository(databaseDatabase)
+	otpService := ProvideOTPService()
+	adminService := ProvideAdminService(adminRepository, roleRepository, otpService)
+	adminController := ProvideAdminController(adminService)
+	adminContainer := &AdminContainer{
+		AdminController: adminController,
+	}
+	return adminContainer
+}
+
+func GetAuthorizationContainer() *AuthorizationContainer {
+	databaseDatabase := database.GetInstance()
+	roleRepository := ProvideRoleRepository(databaseDatabase)
+	permissionRepository := ProvidePermissionRepository(databaseDatabase)
+	userRepository := ProvideUserRepository(databaseDatabase)
+	adminRepository := ProvideAdminRepository(databaseDatabase)
+	permissionGroupRepository := ProvidePermissionGroupRepository(databaseDatabase)
+	authorizationService := ProvideAuthorizationService(roleRepository, permissionRepository, userRepository, adminRepository, permissionGroupRepository)
+	authorizationMiddleware := ProvideAuthorizationMiddleware(authorizationService)
+	authorizationController := ProvideAdminAuthorizationController(authorizationService)
+	authorizationContainer := &AuthorizationContainer{
+		AuthorizationMiddleware:      authorizationMiddleware,
+		AdminAuthorizationController: authorizationController,
+	}
+	return authorizationContainer
+}
+
+func GetUserContainer() *UserContainer {
+	databaseDatabase := database.GetInstance()
+	userRepository := ProvideUserRepository(databaseDatabase)
+	userService := ProvideUserService(userRepository)
+	userController := ProvideAdminUserController(userService)
+	userContainer := &UserContainer{
+		AdminUserController: userController,
+	}
+	return userContainer
 }
 
 // wire.go:
@@ -83,10 +140,28 @@ type (
 	}
 
 	AuthenticationContainer struct {
-		UserRegisterController         *authentication.RegisterController
-		UserLoginController            *authentication.LoginController
-		UserAccessTokenController      *authentication.AccessTokenController
-		UserRecoveryPasswordController *authentication.RecoverPasswordController
-		AuthenticationMiddleware       *middlewares.AuthenticationMiddleware
+		UserRegisterController          *authentication.RegisterController
+		UserLoginController             *authentication.LoginController
+		UserAccessTokenController       *authentication.AccessTokenController
+		UserRecoveryPasswordController  *authentication.RecoverPasswordController
+		UserTwoFaAuthController         *authentication.TwoFAController
+		AdminLoginController            *authentication2.LoginController
+		AdminTwoFaAuthController        *authentication2.TwoFAController
+		AdminAccessTokenController      *admins.AccessTokenController
+		AdminRecoveryPasswordController *authentication2.PasswordRecoveryController
+		AuthenticationMiddleware        *middlewares.AuthenticationMiddleware
+	}
+
+	AdminContainer struct {
+		AdminController *admins.AdminController
+	}
+
+	AuthorizationContainer struct {
+		AuthorizationMiddleware      *middlewares.AuthorizationMiddleware
+		AdminAuthorizationController *admins.AuthorizationController
+	}
+
+	UserContainer struct {
+		AdminUserController *admins.UserController
 	}
 )

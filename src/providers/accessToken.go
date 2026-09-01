@@ -1,6 +1,7 @@
 package providers
 
 import (
+	adminAuthcontrollers "athena/src/api/http/controllers/admins"
 	userAuthcontrollers "athena/src/api/http/controllers/users/authentication"
 	"athena/src/database"
 	"athena/src/repositories"
@@ -25,6 +26,12 @@ func ProvideAccessTokenRepository(db *database.Database) *repositories.AccessTok
 
 func ProvideUserAccessTokenController(accessTokenService *authentication.AccessTokenService) *userAuthcontrollers.AccessTokenController {
 	return &userAuthcontrollers.AccessTokenController{
+		AccessTokenService: accessTokenService,
+	}
+}
+
+func ProvideAdminAccessTokenController(accessTokenService *authentication.AccessTokenService) *adminAuthcontrollers.AccessTokenController {
+	return &adminAuthcontrollers.AccessTokenController{
 		AccessTokenService: accessTokenService,
 	}
 }

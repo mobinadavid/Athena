@@ -30,8 +30,9 @@ type IRecoveryPasswordService interface {
 }
 
 type RecoveryPasswordService struct {
-	UserService services.IUserService
-	OTPService  services.IOTPService
+	UserService  services.IUserService
+	OTPService   services.IOTPService
+	AdminService services.IAdminService
 }
 
 func (service *RecoveryPasswordService) RecoveryPasswordRequestOTP(ctx context.Context, mobile, nationalIdentityCode, owner string) error {
@@ -53,7 +54,23 @@ func (service *RecoveryPasswordService) RecoveryPasswordRequestOTP(ctx context.C
 			return err
 		}
 	}
-
+	if owner == "admin" {
+		user, err := service.AdminService.GetByNationalIdentityCode(ctx, nationalIdentityCode)
+		if err != nil {
+			logger.LogErrorWithFieldsV2(ctx, "failed to get admin by national identity code", service, err)
+			return errs.ErrAuthenticationFailed
+		}
+		if user.Mobile != mobile {
+			logger.LogErrorWithFieldsV2(ctx, "mobile is not valid", service, nil,
+				zap.String("mobile", mobile))
+			return errs.ErrAuthenticationFailed
+		}
+		err = service.OTPService.RequestOTP(ctx, mobile)
+		if err != nil {
+			logger.LogErrorWithFieldsV2(ctx, "failed to request otp", service, err)
+			return err
+		}
+	}
 	return nil
 }
 
@@ -95,6 +112,36 @@ func (service *RecoveryPasswordService) RecoveryPasswordViaOTP(ctx context.Conte
 			return errs.SomeThingWentWrong
 		}
 
+	}
+	if owner == "admin" {
+		admin, err := service.AdminService.GetByNationalIdentityCode(ctx, nationalIdentityCode)
+		if err != nil {
+			logger.LogErrorWithFieldsV2(ctx, "failed to get admin by national identity code", service, err)
+			return errs.SomeThingWentWrong
+		}
+		otpIsValid, err := service.OTPService.VerifyOTP(ctx, admin.Mobile, otp)
+		if err != nil {
+			logger.LogErrorWithFieldsV2(ctx, "failed to verify otp", service, err,
+				zap.String("otp", otp))
+			return err
+		}
+		if !otpIsValid {
+			logger.LogErrorWithFieldsV2(ctx, "otp is not valid", service, nil,
+				zap.String("otp", otp))
+			return errs.ErrOTPInvalid
+		}
+		if newPassword != newPasswordConfirmation {
+			logger.LogErrorWithFieldsV2(ctx, "passwords confirmation does not match", service, errs.PasswordNotMatch)
+			return errs.PasswordNotMatch
+		}
+
+		// Update Admin Password.
+		admin.Password = []byte(newPassword)
+		_, err = service.AdminService.Update(ctx, admin)
+		if err != nil {
+			logger.LogErrorWithFieldsV2(ctx, "failed to update admin password", service, err)
+			return errs.SomeThingWentWrong
+		}
 	}
 
 	return nil

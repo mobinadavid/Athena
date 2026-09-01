@@ -1,6 +1,9 @@
 package api
 
 import (
+	"athena/src/api/http/routes/admins"
+	users "athena/src/api/http/routes/users"
+
 	"athena/src/api/http/middlewares"
 	"athena/src/api/http/routes"
 	"athena/src/config"
@@ -20,7 +23,11 @@ var (
 
 func Init() (err error) {
 	g.Go(func() error {
-		return initServer()
+		return initUserServer()
+	})
+
+	g.Go(func() error {
+		return initAdminServer()
 	})
 
 	if err = g.Wait(); err != nil {
@@ -53,10 +60,6 @@ func getNewRouter() *gin.Engine {
 	// Attach i18n middleware.
 	router.Use(middlewares.I18n)
 
-	// Attach Global Rate Limiter
-	//limiter := middlewares.NewRateLimiter(1, 1)
-	//router.Use(limiter.Middleware())
-
 	if isProduction {
 
 		router.Use(secure.New(secure.Config{
@@ -81,13 +84,13 @@ func getNewRouter() *gin.Engine {
 	return router
 }
 
-func initServer() error {
+func initUserServer() error {
 	router := getNewRouter()
 
 	v1 := router.Group("api/v1")
 	{
-		routes.AuthenticationRouter(v1)
-		routes.RegisterAccessTokenRouter(v1)
+		users.AuthenticationRouter(v1)
+		users.RegisterAccessTokenRouter(v1)
 		routes.BlockchainRouter(v1)
 		routes.WalletAddressRouter(v1)
 		routes.BlockchainExplorerRouter(v1)
@@ -96,12 +99,39 @@ func initServer() error {
 	}
 	// Run App.
 	if err := router.RunTLS(
-		fmt.Sprintf(":%s", configs.Get("APP_PORT")),
+		fmt.Sprintf(":%s", configs.Get("USER_APP_PORT")),
 		configs.Get("SSL_CERT_PATH"),
 		configs.Get("SSL_KEY_PATH"),
 	); err != nil {
 		return err
 	}
 
+	return nil
+}
+
+func initAdminServer() error {
+	router := getNewRouter()
+
+	v1 := router.Group("api/v1")
+	{
+		admins.AuthenticationRouter(v1)
+		admins.RegisterAccessTokensRouter(v1)
+		admins.RegisterUserRouter(v1)
+		admins.RegisterAuthorizationRouter(v1)
+		admins.RegisterAdminRouter(v1)
+		routes.BlockchainRouter(v1)
+		routes.WalletAddressRouter(v1)
+		routes.BlockchainExplorerRouter(v1)
+		routes.IpgRouter(v1)
+	}
+
+	// Run App.
+	if err := router.RunTLS(
+		fmt.Sprintf(":%s", configs.Get("ADMIN_APP_PORT")),
+		configs.Get("SSL_CERT_PATH"),
+		configs.Get("SSL_KEY_PATH"),
+	); err != nil {
+		return err
+	}
 	return nil
 }

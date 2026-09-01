@@ -12,7 +12,7 @@ import (
 type UserModel struct {
 	ID       uint      `json:"id,omitempty" gorm:"primarykey"`
 	Uuid     uuid.UUID `json:"uuid,omitempty" gorm:"type:uuid;default:uuid_generate_v4(); uniqueIndex" filter:"true"`
-	IsActive bool      `json:"is_active,omitempty" gorm:"type:bool; default:true" filter:"true" like:"true"`
+	IsActive *bool     `json:"is_active,omitempty" gorm:"type:bool; default:true" filter:"true" like:"true"`
 	// Personal information.
 	FirstName        string         `json:"first_name,omitempty" gorm:"type:varchar(255); default:null" filter:"true" like:"true" sort:"true"`
 	LastName         string         `json:"last_name,omitempty" gorm:"type:varchar(255); default:null" filter:"true" like:"true" sort:"true"`

@@ -77,9 +77,9 @@ func (service *AccessTokenService) Create(ctx context.Context, owner interface{}
 	case *models.UserModel:
 		accessToken.OwnerID = owner.ID
 		accessToken.OwnerType = "user"
-	//case *models.AdminModel:
-	//	accessToken.OwnerID = owner.ID
-	//	accessToken.OwnerType = "admin"
+	case *models.AdminModel:
+		accessToken.OwnerID = owner.ID
+		accessToken.OwnerType = "admin"
 	default:
 		err := errors.New("unsupported owner type")
 		logger.LogErrorWithFieldsV2(ctx, "unsupported owner type", service, err,

@@ -2,6 +2,7 @@ package services
 
 import (
 	"athena/src/api/errs"
+	"athena/src/api/http/requests/AdminRequests"
 	"athena/src/api/http/requests/Users/UserRequests"
 	"athena/src/database/scopes"
 	"athena/src/models"
@@ -9,6 +10,7 @@ import (
 	"athena/src/pkg/utils"
 	"athena/src/repositories"
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
 )
@@ -27,6 +29,8 @@ type IUserService interface {
 	DeleteByUuid(ctx context.Context, userUuid *uuid.UUID) error
 	FirstOrCreate(ctx context.Context, mobile string, nationalIdentityCode string) (*models.UserModel, error)
 	UpdateOrCreate(ctx context.Context, search *models.UserModel, assign *models.UserModel) (*models.UserModel, error)
+	CreateUserByAdmin(ctx context.Context, req *AdminRequests.CreateUpdateUserByAdminRequest) (*models.UserModel, error)
+	UpdateUserByAdmin(ctx context.Context, userUuid uuid.UUID, req *AdminRequests.CreateUpdateUserByAdminRequest) (*models.UserModel, error)
 }
 
 type UserService struct {
@@ -178,4 +182,89 @@ func (service *UserService) UpdateOrCreate(ctx context.Context, search *models.U
 	}
 
 	return res, nil
+}
+
+func (service *UserService) CreateUserByAdmin(ctx context.Context, req *AdminRequests.CreateUpdateUserByAdminRequest) (*models.UserModel, error) {
+	nationalCode := req.NationalIdentityCode
+	existingUser, _ := service.UserRepository.GetByNationalIdentityCode(nationalCode)
+	if existingUser != nil && existingUser.ID > 0 {
+		return nil, errs.SomeThingWentWrong
+	}
+
+	existingByMobile, _ := service.UserRepository.GetByMobile(req.Mobile)
+	if existingByMobile != nil && existingByMobile.ID > 0 {
+		return nil, errs.SomeThingWentWrong
+	}
+
+	if req.Password != req.PasswordConfirmation {
+		logger.LogErrorWithFieldsV2(ctx, "password and confirmation do not match", service, nil)
+		return nil, errs.PasswordNotMatch
+	}
+
+	isActive := true
+	user := &models.UserModel{
+		NationalIdentityCode: nationalCode,
+		Mobile:               req.Mobile,
+		Password:             []byte(req.Password),
+		IsActive:             &isActive,
+	}
+
+	userOrm, err := service.UserRepository.Create(user)
+	if err != nil {
+		logger.LogErrorWithFieldsV2(ctx, "failed to create user by admin", service, err)
+		return nil, errs.SomeThingWentWrong
+	}
+
+	return service.UserRepository.GetByUuid(&userOrm.Uuid)
+}
+
+func (service *UserService) UpdateUserByAdmin(ctx context.Context, userUuid uuid.UUID, req *AdminRequests.CreateUpdateUserByAdminRequest) (*models.UserModel, error) {
+	existingUser, err := service.UserRepository.GetByUuid(&userUuid)
+	if err != nil {
+		logger.LogErrorWithFieldsV2(ctx, "failed to get user by uuid", service, err)
+		return nil, errs.UserNotFound
+	}
+
+	newNationalCode := req.NationalIdentityCode
+
+	if existingUser.NationalIdentityCode != newNationalCode {
+		userWithSameNational, err := service.UserRepository.GetByNationalIdentityCode(newNationalCode)
+		if err != nil && !errors.Is(err, errs.RecordNotFound) {
+			logger.LogErrorWithFieldsV2(ctx, "failed to check national identity code", service, err)
+			return nil, errs.UserNotFound
+		}
+		if userWithSameNational != nil && userWithSameNational.ID != existingUser.ID {
+			return nil, errs.SomeThingWentWrong
+		}
+	}
+
+	if existingUser.Mobile != req.Mobile {
+		userWithSameMobile, err := service.UserRepository.GetByMobile(req.Mobile)
+		if err != nil && !errors.Is(err, errs.RecordNotFound) {
+			logger.LogErrorWithFieldsV2(ctx, "failed to check mobile", service, err)
+			return nil, errs.UserNotFound
+		}
+		if userWithSameMobile != nil && userWithSameMobile.ID != existingUser.ID {
+			return nil, errs.SomeThingWentWrong
+		}
+	}
+
+	if req.Password != req.PasswordConfirmation {
+		logger.LogErrorWithFieldsV2(ctx, "password and confirmation do not match", service, nil)
+		return nil, errs.PasswordNotMatch
+	}
+
+	existingUser.NationalIdentityCode = newNationalCode
+	existingUser.Mobile = req.Mobile
+	if req.Password != "" {
+		existingUser.Password = []byte(req.Password)
+	}
+
+	_, err = service.UserRepository.Update(existingUser)
+	if err != nil {
+		logger.LogErrorWithFieldsV2(ctx, "failed to update user by admin", service, err)
+		return nil, errs.SomeThingWentWrong
+	}
+
+	return service.UserRepository.GetByUuid(&existingUser.Uuid)
 }

@@ -1,6 +1,7 @@
 package providers
 
 import (
+	adminAuthcontrollers "athena/src/api/http/controllers/admins/authentication"
 	"athena/src/api/http/controllers/users/authentication"
 	"athena/src/api/http/middlewares"
 	"athena/src/services"
@@ -32,17 +33,14 @@ func ProvideRegisterService(userService *services.UserService, otpService *servi
 	}
 }
 
-func ProvideLoginService(userService *services.UserService, jwtService *authServices.JwtService, accessTokenService *authServices.AccessTokenService, otpService *services.OTPService) *authServices.LoginService {
+func ProvideLoginService(userService *services.UserService, jwtService *authServices.JwtService, accessTokenService *authServices.AccessTokenService, otpService *services.OTPService, adminService *services.AdminService) *authServices.LoginService {
 	return &authServices.LoginService{
 		UserService:        userService,
 		JwtService:         jwtService,
 		AccessTokenService: accessTokenService,
 		OTPService:         otpService,
+		AdminService:       adminService,
 	}
-}
-
-func ProvideTwoFaService() *authServices.TwoFaService {
-	return &authServices.TwoFaService{}
 }
 
 func ProvideJwtService() *authServices.JwtService {
@@ -55,22 +53,42 @@ func ProvideAuthenticationMiddleware(accessTokenService *authServices.AccessToke
 	}
 }
 
-func ProvideRecoveryPasswordService(OtpService *services.OTPService, UserService *services.UserService) *authServices.RecoveryPasswordService {
+func ProvideRecoveryPasswordService(OtpService *services.OTPService, UserService *services.UserService, AdminService *services.AdminService) *authServices.RecoveryPasswordService {
 	return &authServices.RecoveryPasswordService{
-		OTPService:  OtpService,
-		UserService: UserService,
+		OTPService:   OtpService,
+		UserService:  UserService,
+		AdminService: AdminService,
 	}
 }
 
-//func ProvideAdminLoginController(loginService *authServices.LoginService, accessToken *authServices.AccessTokenService) *adminAuthcontrollers.LoginController {
-//	return &adminAuthcontrollers.LoginController{
-//		LoginService: loginService,
-//		AccessToken:  accessToken,
-//	}
-//}
-//
-//func ProvideAdminPasswordRecoveryController(RecoveryPassword *authServices.RecoveryPasswordService) *adminAuthcontrollers.PasswordRecoveryController {
-//	return &adminAuthcontrollers.PasswordRecoveryController{
-//		RecoveryPasswordService: RecoveryPassword,
-//	}
-//}
+func ProvideAdminLoginController(loginService *authServices.LoginService, accessToken *authServices.AccessTokenService) *adminAuthcontrollers.LoginController {
+	return &adminAuthcontrollers.LoginController{
+		LoginService: loginService,
+		AccessToken:  accessToken,
+	}
+}
+
+func ProvideAdminPasswordRecoveryController(RecoveryPassword *authServices.RecoveryPasswordService) *adminAuthcontrollers.PasswordRecoveryController {
+	return &adminAuthcontrollers.PasswordRecoveryController{
+		RecoveryPasswordService: RecoveryPassword,
+	}
+}
+
+func ProvideUserTwoFactorAutController(twoFactorAuth *authServices.TwoFaService) *authentication.TwoFAController {
+	return &authentication.TwoFAController{
+		TwoFaService: twoFactorAuth,
+	}
+}
+
+func ProvideTwoFactorService(userService *services.UserService, otpService *services.OTPService) *authServices.TwoFaService {
+	return &authServices.TwoFaService{
+		UserService: userService,
+		OTPService:  otpService,
+	}
+}
+
+func ProvideAdminTwoFactorAutController(twoFactorAuth *authServices.TwoFaService) *adminAuthcontrollers.TwoFAController {
+	return &adminAuthcontrollers.TwoFAController{
+		TwoFaService: twoFactorAuth,
+	}
+}
