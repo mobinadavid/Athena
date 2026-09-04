@@ -23,6 +23,10 @@ type (
 		IpgController                *controllers.IpgController
 		DepositService               *services.DepositService
 		IgpService                   *services.IGPService
+		PaymentController            *controllers.PaymentController
+		DepositController            *controllers.DepositController
+		NotificationController       *controllers.NotificationController
+		DashboardController          *controllers.DashboardController
 	}
 
 	AuthenticationContainer struct {
@@ -58,7 +62,10 @@ func GetContainer() *Container {
 		BlockchainContainer,
 		ExplorerContainer,
 		WalletAddressContainer,
+		NotificationContainer,
+		PaymentContainer,
 		DepositContainer,
+		DashboardContainer,
 		IpgContainer,
 		IgpContainer,
 		wire.Struct(new(Container), "*"),

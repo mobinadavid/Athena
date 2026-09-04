@@ -87,6 +87,7 @@ func initUserServer() error {
 		routes.BlockchainRouter(v1)
 		routes.WalletAddressRouter(v1)
 		routes.IpgRouter(v1)
+		users.RegisterPaymentTrackingRouter(v1)
 	}
 
 	if err := router.RunTLS(
@@ -113,6 +114,7 @@ func initAdminServer() error {
 		admins.RegisterBlockchainRouter(v1)
 		admins.RegisterBlockchainExplorerRouter(v1)
 		admins.RegisterWalletAddressRouter(v1)
+		admins.RegisterPaymentRouter(v1)
 	}
 
 	if err := router.RunTLS(

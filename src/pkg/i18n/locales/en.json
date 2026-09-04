@@ -14,5 +14,11 @@
   "invalid-is-uuid": "The provided value is not a valid UUID.",
   "invalid-is-wallet-address": "The provided value is not a valid Wallet Address.",
   "invalid-exists": "The provided value is not found in our dataset.",
-  "invalid-is-strong-password": "Given password is not strong enough."
+  "invalid-is-strong-password": "Given password is not strong enough.",
+  "not-enough-wallet-addresses": "Not enough free wallet addresses are available on this blockchain.",
+  "invalid-wallet-address-count": "Requested wallet count is invalid.",
+  "payment-request-expired": "This payment request has expired.",
+  "wallet-address-is-not-allocated": "This wallet address is not allocated.",
+  "record-not-found": "The requested record was not found.",
+  "something-went-wrong": "Something went wrong. Please try again."
 }

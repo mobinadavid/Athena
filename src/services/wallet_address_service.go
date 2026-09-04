@@ -2,6 +2,7 @@ package services
 
 import (
 	"athena/src/api/http/requests"
+	"athena/src/config"
 	"athena/src/database/scopes"
 	"athena/src/models"
 	"athena/src/pkg/payment-gateway/drivers/crypto"
@@ -26,6 +27,8 @@ type IWalletAddressService interface {
 	GetTransactions(address *models.WalletAddress, page, limit uint) (*scopes.PaginatedModel, error)
 	GetTransactionsList(walletAddress *models.WalletAddress) ([]*models.Transaction, error)
 	AllocateWalletAddresses(request *requests.AllocateWalletAddress) ([]string, error)
+	GetAllocatedByUser(userID uint) ([]*models.WalletAddress, error)
+	ReleaseWalletAddresses(walletAddresses []*models.WalletAddress) error
 	FilterTransactions(txs []*models.Transaction, walletAddress *models.WalletAddress) ([]*models.TransactionResponse, error)
 }
 
@@ -63,25 +66,11 @@ func (service *WalletAddressService) AllocateWalletAddresses(request *requests.A
 		return nil, err
 	}
 
-	walletAddresses, err := service.IWalletAddressRepository.GetUnallocatedWalletAddress(request.Count, blockchain.ID)
+	walletAddresses, err := service.IWalletAddressRepository.AllocateAtomic(request.Count, blockchain.ID, nil, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if any addresses are found
-	if len(walletAddresses) == 0 {
-		return nil, errors.New("no wallet addresses found")
-	} else if len(walletAddresses) != request.Count {
-		return nil, errors.New("not enough wallet addresses found")
-	} else {
-		//Update to allocated
-		err := service.IWalletAddressRepository.UpdateWalletAddressToAllocated(walletAddresses)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// Collect wallet address names
 	var walletAddressesName []string
 	for _, walletAddress := range walletAddresses {
 		walletAddressesName = append(walletAddressesName, walletAddress.WalletAddress)
@@ -100,6 +89,14 @@ func (service *WalletAddressService) GetAllocatedList() (*scopes.PaginatedModel,
 		Items: &walletAddresses,
 	}, nil
 
+}
+
+func (service *WalletAddressService) GetAllocatedByUser(userID uint) ([]*models.WalletAddress, error) {
+	return service.IWalletAddressRepository.GetAllocatedByUser(userID)
+}
+
+func (service *WalletAddressService) ReleaseWalletAddresses(walletAddresses []*models.WalletAddress) error {
+	return service.IWalletAddressRepository.ReleaseWalletAddresses(walletAddresses)
 }
 
 func (service *WalletAddressService) GetByUuid(uuid *uuid.UUID) (*models.WalletAddress, error) {
@@ -229,7 +226,11 @@ func (service *WalletAddressService) FilterTransactions(txs []*models.Transactio
 			continue
 		}
 
-		if !isValidTransaction(tx, walletAddress, transactionTime) {
+		if walletAddress.AllocatedAt != nil && !transactionTime.After(*walletAddress.AllocatedAt) {
+			continue
+		}
+
+		if !isIncomingConfirmedTransaction(tx, walletAddress) {
 			continue
 		}
 
@@ -253,39 +254,85 @@ func (service *WalletAddressService) FilterTransactions(txs []*models.Transactio
 		}
 
 		filteredTxs = append(filteredTxs, &models.TransactionResponse{
-			BlockNumber: blockNumber,
-			Hash:        tx.Hash,
-			Timestamp:   transactionTime,
-			From:        tx.From,
-			ToAddresses: tx.ToAddresses,
-			Fee:         fee,
-			IsConfirmed: tx.IsConfirmed,
-			Value:       amount,
-			BlockChain:  tx.BlockChain,
+			BlockNumber:   blockNumber,
+			Hash:          tx.Hash,
+			Timestamp:     transactionTime,
+			From:          tx.From,
+			ToAddresses:   tx.ToAddresses,
+			Fee:           fee,
+			IsConfirmed:   tx.IsConfirmed,
+			Value:         amount,
+			BlockChain:    tx.BlockChain,
+			Confirmations: confirmationsOf(tx),
 		})
 	}
 
 	return filteredTxs, nil
 }
 
-// isValidTransaction checks if the transaction is valid based on the blockchain type and wallet address.
-func isValidTransaction(tx *models.Transaction, walletAddress *models.WalletAddress, transactionTime time.Time) bool {
+func isIncomingConfirmedTransaction(tx *models.Transaction, walletAddress *models.WalletAddress) bool {
+	if !isIncomingToWallet(tx, walletAddress.WalletAddress) {
+		return false
+	}
+
+	required := requiredConfirmations(walletAddress.Blockchain.NativeAsset)
 	switch walletAddress.Blockchain.NativeAsset {
-	case "ETH", "BSC":
+	case "ETH", "BSC", "BTC":
 		confirmations, err := strconv.Atoi(tx.Confirmations)
 		if err != nil {
 			fmt.Printf("Error parsing Confirmations: %v\n", err)
 			return false
 		}
-		return confirmations > 12 && tx.From == strings.ToLower(walletAddress.WalletAddress) && transactionTime.After(walletAddress.AllocatedAt)
+		return confirmations >= required
 	case "TRX":
-		return tx.IsConfirmed && tx.From == walletAddress.WalletAddress
-	case "BTC":
-		return tx.From == walletAddress.WalletAddress && transactionTime.After(walletAddress.AllocatedAt)
+		return tx.IsConfirmed
 	default:
 		fmt.Printf("Unsupported blockchain: %s\n", walletAddress.Blockchain.Name)
 		return false
 	}
+}
+
+func isIncomingToWallet(tx *models.Transaction, walletAddress string) bool {
+	for _, to := range tx.ToAddresses {
+		if strings.EqualFold(strings.TrimSpace(to), strings.TrimSpace(walletAddress)) {
+			return true
+		}
+	}
+	return false
+}
+
+func requiredConfirmations(nativeAsset string) int {
+	switch nativeAsset {
+	case "ETH":
+		return envInt("PAYMENT_CONFIRMATIONS_ETH", 12)
+	case "BSC":
+		return envInt("PAYMENT_CONFIRMATIONS_BSC", 12)
+	case "BTC":
+		return envInt("PAYMENT_CONFIRMATIONS_BTC", 3)
+	case "TRX":
+		return envInt("PAYMENT_CONFIRMATIONS_TRX", 1)
+	default:
+		return 12
+	}
+}
+
+func envInt(key string, fallback int) int {
+	value, err := strconv.Atoi(config.GetInstance().Get(key))
+	if err != nil || value <= 0 {
+		return fallback
+	}
+	return value
+}
+
+func confirmationsOf(tx *models.Transaction) int {
+	confirmations, err := strconv.Atoi(tx.Confirmations)
+	if err != nil {
+		if tx.IsConfirmed {
+			return 1
+		}
+		return 0
+	}
+	return confirmations
 }
 
 // convertAmountAndFee converts amount and fee based on the blockchain type.

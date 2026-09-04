@@ -34,7 +34,16 @@ func GetContainer() *Container {
 	ipgService := ProvideIpgService(igpService)
 	ipgController := ProvideIpgController(ipgService)
 	depositRepository := ProvideDepositRepository(databaseDatabase)
-	depositService := ProvideDepositService(depositRepository, walletAddressService)
+	paymentRequestRepository := ProvidePaymentRequestRepository(databaseDatabase)
+	notificationRepository := ProvideNotificationRepository(databaseDatabase)
+	notificationService := ProvideNotificationService(notificationRepository)
+	depositService := ProvideDepositService(depositRepository, walletAddressService, paymentRequestRepository, notificationService)
+	paymentService := ProvidePaymentService(paymentRequestRepository, walletAddressService, walletAddressRepository, blockchainService, depositRepository)
+	paymentController := ProvidePaymentController(paymentService)
+	depositController := ProvideDepositController(depositService)
+	notificationController := ProvideNotificationController(notificationService)
+	dashboardService := ProvideDashboardService(depositRepository, walletAddressRepository, notificationRepository)
+	dashboardController := ProvideDashboardController(dashboardService)
 	container := &Container{
 		BlockchainController:         blockchainController,
 		WalletAddressController:      walletAddressController,
@@ -42,6 +51,10 @@ func GetContainer() *Container {
 		IpgController:                ipgController,
 		DepositService:               depositService,
 		IgpService:                   igpService,
+		PaymentController:            paymentController,
+		DepositController:            depositController,
+		NotificationController:       notificationController,
+		DashboardController:          dashboardController,
 	}
 	return container
 }
@@ -137,6 +150,10 @@ type (
 		IpgController                *controllers.IpgController
 		DepositService               *services.DepositService
 		IgpService                   *services.IGPService
+		PaymentController            *controllers.PaymentController
+		DepositController            *controllers.DepositController
+		NotificationController       *controllers.NotificationController
+		DashboardController          *controllers.DashboardController
 	}
 
 	AuthenticationContainer struct {

@@ -5,6 +5,7 @@ import (
 	"athena/src/api/http/response"
 	"athena/src/database/scopes"
 	"athena/src/pkg/i18n"
+	"athena/src/pkg/utils"
 	"athena/src/pkg/validator"
 	"athena/src/services"
 	"fmt"
@@ -283,7 +284,60 @@ func (controller *WalletAddressController) GetTransactions(c *gin.Context) {
 
 }
 
+func (controller *WalletAddressController) GetMyAllocated(c *gin.Context) {
+	auth := utils.GetAuthData(c)
+	wallets, err := controller.IWalletAddressService.GetAllocatedByUser(auth.OwnerId)
+	if err != nil {
+		response.Api(c).SetMessage(err.Error()).Send()
+		return
+	}
+
+	response.Api(c).
+		SetStatusCode(http.StatusOK).
+		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
+		SetData(map[string]interface{}{
+			"wallet_addresses": wallets,
+		}).Send()
+}
+
+func (controller *WalletAddressController) GetOwnedTransactions(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("uuid"))
+	if err != nil {
+		response.Api(c).Send()
+		return
+	}
+
+	walletAddress, err := controller.IWalletAddressService.GetByUuid(&id)
+	if err != nil {
+		response.Api(c).SetStatusCode(http.StatusNotFound).SetMessage(err.Error()).Send()
+		return
+	}
+
+	auth := utils.GetAuthData(c)
+	if walletAddress.AllocatedToUserID == nil || *walletAddress.AllocatedToUserID != auth.OwnerId {
+		response.Api(c).SetStatusCode(http.StatusForbidden).SetMessage(i18n.Localize(c.GetString("locale"), "request-unauthorized")).Send()
+		return
+	}
+
+	transactions, err := controller.IWalletAddressService.GetTransactions(
+		walletAddress,
+		uint(c.GetInt("page")),
+		uint(c.GetInt("limit")),
+	)
+	if err != nil {
+		response.Api(c).SetMessage(err.Error()).Send()
+		return
+	}
+
+	response.Api(c).
+		SetStatusCode(http.StatusOK).
+		SetMessage(i18n.Localize(c.GetString("locale"), "request-successful")).
+		SetData(map[string]interface{}{
+			"transactions": transactions,
+		}).Send()
+}
+
 func (controller *WalletAddressController) Webhook(c *gin.Context) {
-	hash := c.Param(":hash")
+	hash := c.Param("hash")
 	fmt.Println("received transaction", hash)
 }

@@ -129,3 +129,12 @@ var (
 var (
 	UserNotFound = errors.New("user-not-found")
 )
+
+// payments
+var (
+	ErrNotEnoughWalletAddresses = errors.New("not-enough-wallet-addresses")
+	ErrInvalidWalletCount       = errors.New("invalid-wallet-address-count")
+	ErrPaymentRequestExpired    = errors.New("payment-request-expired")
+	ErrWalletNotAllocated       = errors.New("wallet-address-is-not-allocated")
+	ErrForbiddenResource        = errors.New("request-unauthorized")
+)

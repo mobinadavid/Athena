@@ -25,6 +25,26 @@ type PaginatedModel struct {
 	Items       interface{} `json:"items"`
 }
 
+func NewPaginatedModel(items interface{}, count int64, page, limit uint) *PaginatedModel {
+	if page == 0 {
+		page = 1
+	}
+	if limit == 0 {
+		limit = 10
+	}
+	totalPages := int64(0)
+	if limit > 0 {
+		totalPages = (count + int64(limit) - 1) / int64(limit)
+	}
+	return &PaginatedModel{
+		Limit:       limit,
+		CurrentPage: page,
+		TotalItems:  count,
+		TotalPages:  totalPages,
+		Items:       items,
+	}
+}
+
 func PaginateScope(page uint, limit uint) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		if page <= 0 {

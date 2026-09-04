@@ -13,5 +13,11 @@
   "invalid-jalali-date": "تاریخ ارسال شده معتبر نمیباشد.",
   "invalid-is-uuid": "مقدار ارسال شده یک uuid معتبر نمیباشد.",
   "invalid-exists": "مقدار ارسال شده نامعتبر است.",
-  "invalid-is-strong-password": "گذرواژه ارسال شده ضعیف میباشد."
+  "invalid-is-strong-password": "گذرواژه ارسال شده ضعیف میباشد.",
+  "not-enough-wallet-addresses": "آدرس کیف پول آزاد کافی در این بلاکچین وجود ندارد.",
+  "invalid-wallet-address-count": "تعداد آدرس کیف پول درخواستی معتبر نیست.",
+  "payment-request-expired": "مهلت این درخواست پرداخت به پایان رسیده است.",
+  "wallet-address-is-not-allocated": "این آدرس کیف پول اختصاص داده نشده است.",
+  "record-not-found": "رکورد مورد نظر یافت نشد.",
+  "something-went-wrong": "خطایی رخ داد. لطفا دوباره تلاش کنید."
 }

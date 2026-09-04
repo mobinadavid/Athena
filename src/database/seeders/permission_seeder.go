@@ -171,6 +171,26 @@ var permissions = []models.PermissionModel{
 		Name:  "wallet-address-transactions",
 		Title: datatypes.JSON(`{"fa": "نمایش تراکنش‌های آدرس کیف پول"}`),
 	},
+	{
+		Name:  "payment-list",
+		Title: datatypes.JSON(`{"fa": "نمایش لیست درخواست‌های پرداخت"}`),
+	},
+	{
+		Name:  "payment-show",
+		Title: datatypes.JSON(`{"fa": "نمایش جزئیات درخواست پرداخت"}`),
+	},
+	{
+		Name:  "deposit-list",
+		Title: datatypes.JSON(`{"fa": "نمایش لیست واریزی‌ها"}`),
+	},
+	{
+		Name:  "deposit-show",
+		Title: datatypes.JSON(`{"fa": "نمایش جزئیات واریزی"}`),
+	},
+	{
+		Name:  "dashboard-show",
+		Title: datatypes.JSON(`{"fa": "نمایش داشبورد"}`),
+	},
 }
 
 func SeedPermission() {
