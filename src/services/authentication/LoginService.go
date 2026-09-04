@@ -2,6 +2,7 @@ package authentication
 
 import (
 	"athena/src/api/errs"
+	adminLogin "athena/src/api/http/requests/Admin/authentication/login"
 	"athena/src/api/http/requests/authentication"
 	"athena/src/cache"
 	"athena/src/config"
@@ -29,18 +30,29 @@ type LoginService struct {
 	AccessTokenService IAccessTokenService
 	OTPService         services.IOTPService
 	AdminService       services.IAdminService
-	//ProfileService      services.IProfile
-	//NotificationService *services.NotificationProcessService
+	TwoFaService       ITwoFaService
+}
+
+type LoginResult struct {
+	Tokens        *JwtDTO
+	TwoFaRequired bool
+	LoginKey      string
+}
+
+type twoFaLoginState struct {
+	OwnerID   uint   `json:"owner_id"`
+	OwnerType string `json:"owner_type"`
 }
 
 type ILoginService interface {
 	CheckUserCredentials(ctx context.Context, nationalIdentityCode, password, ownerType string) (int, error)
 	GetAccessTokenViaOtp(ctx context.Context, nationalIdentityCode, otp, ownerType string) (*JwtDTO, error)
-	UserLoginViaPassword(ctx context.Context) (*JwtDTO, error)
-	UserLoginVerifyOTP(ctx context.Context) (*JwtDTO, error)
+	UserLoginViaPassword(ctx context.Context) (*LoginResult, error)
+	UserLoginVerifyOTP(ctx context.Context) (*LoginResult, error)
 	LoginViaOtpSendOtp(ctx context.Context) (string, error)
 	ResendLoginOTP(ctx context.Context) error
-	AdminLoginViaPassword(ctx context.Context) (*JwtDTO, error)
+	AdminLoginViaPassword(ctx context.Context) (*LoginResult, error)
+	VerifyTwoFactorLogin(ctx context.Context) (*JwtDTO, error)
 }
 
 func (service *LoginService) CheckUserCredentials(ctx context.Context, nationalIdentityCode, password, ownerType string) (int, error) {
@@ -155,7 +167,7 @@ func (service *LoginService) GetAccessTokenViaOtp(ctx context.Context, nationalI
 	return jwtDTO, nil
 }
 
-func (service *LoginService) UserLoginViaPassword(ctx context.Context) (*JwtDTO, error) {
+func (service *LoginService) UserLoginViaPassword(ctx context.Context) (*LoginResult, error) {
 	req, ok := ctx.Value("req").(*Authentication.LoginRequest)
 	if !ok {
 		logger.LogErrorWithFieldsV2(ctx, "failed to read login request", service, nil)
@@ -168,29 +180,18 @@ func (service *LoginService) UserLoginViaPassword(ctx context.Context) (*JwtDTO,
 		return nil, errs.ErrAuthenticationFailed
 	}
 
+	if user.IsActive != nil && !*user.IsActive {
+		logger.LogErrorWithFieldsV2(ctx, "user is deactivated", service, errs.ErrDeactivatedUser)
+		return nil, errs.ErrDeactivatedUser
+	}
+
 	passwordOK, err := hash.VerifyStoredHash(user.Password, req.Password)
 	if err != nil || !passwordOK {
 		logger.LogErrorWithFieldsV2(ctx, "password mismatch", service, err)
 		return nil, errs.ErrAuthenticationFailed
 	}
 
-	ownerType := "user"
-	jwtDTO, err := service.JwtService.Generate(ctx, ownerType)
-	if err != nil {
-		logger.LogErrorWithFieldsV2(ctx, "jwt generation failed", service, err)
-		return nil, errs.ErrAuthenticationFailed
-	}
-
-	ip := ctx.Value("request-ip").(string)
-	userAgent := ctx.Value("request-user-agent").(string)
-
-	_, err = service.AccessTokenService.Create(ctx, user, jwtDTO, ip, userAgent)
-	if err != nil {
-		logger.LogErrorWithFieldsV2(ctx, "db token insert failed", service, err)
-		return nil, errs.ErrAuthenticationFailed
-	}
-
-	return jwtDTO, nil
+	return service.completeLogin(ctx, user, models.UserRole, user.ID, user.TwoFaEnabled)
 }
 
 func (service *LoginService) LoginViaOtpSendOtp(ctx context.Context) (string, error) {
@@ -289,7 +290,7 @@ func (service *LoginService) ResendLoginOTP(ctx context.Context) error {
 	return nil
 }
 
-func (service *LoginService) UserLoginVerifyOTP(ctx context.Context) (*JwtDTO, error) {
+func (service *LoginService) UserLoginVerifyOTP(ctx context.Context) (*LoginResult, error) {
 	req, ok := ctx.Value("req").(*Authentication.VerifyLoginOTP)
 	if !ok {
 		logger.LogErrorWithFieldsV2(ctx, "failed to verify login otp", service, nil)
@@ -312,14 +313,17 @@ func (service *LoginService) UserLoginVerifyOTP(ctx context.Context) (*JwtDTO, e
 		logger.LogErrorWithFieldsV2(ctx, "failed to verify login otp", service, err)
 		return nil, errs.SomeThingWentWrong
 	}
-	// get user
 	user, err := service.UserService.GetByNationalIdentityCode(ctx, resp.NationalIdentityCode)
 	if err != nil {
-		logger.LogErrorWithFieldsV2(ctx, "failed to get admin by national identity code", service, err)
+		logger.LogErrorWithFieldsV2(ctx, "failed to get user by national identity code", service, err)
 		return nil, errs.ErrAuthenticationFailed
 	}
-	var otpIsValid bool
-	otpIsValid, err = service.OTPService.VerifyOTP(ctx, user.Mobile, req.OTP)
+	if user.IsActive != nil && !*user.IsActive {
+		logger.LogErrorWithFieldsV2(ctx, "user is deactivated", service, errs.ErrDeactivatedUser)
+		return nil, errs.ErrDeactivatedUser
+	}
+
+	otpIsValid, err := service.OTPService.VerifyOTP(ctx, user.Mobile, req.OTP)
 	if err != nil {
 		logger.LogErrorWithFieldsV2(ctx, "failed to verify login otp", service, err,
 			zap.String("mobile", user.Mobile),
@@ -336,61 +340,162 @@ func (service *LoginService) UserLoginVerifyOTP(ctx context.Context) (*JwtDTO, e
 		return nil, errs.ErrOTPInvalid
 	}
 
-	//generate token
-	ownerType := "user"
-	jwtDTO, err := service.JwtService.Generate(ctx, ownerType)
-	if err != nil {
-		logger.LogErrorWithFieldsV2(ctx, "failed to generate jwt", service, err)
-		return nil, errs.SomeThingWentWrong
-	}
-
-	// Store tokens in database
-	ip := ctx.Value("request-ip").(string)
-	userAgent := ctx.Value("request-user-agent").(string)
-
-	_, err = service.AccessTokenService.Create(ctx, user, jwtDTO, ip, userAgent)
-	if err != nil {
-		logger.LogErrorWithFieldsV2(ctx, "failed to store token in db", service, err)
-		return nil, errs.SomeThingWentWrong
-	}
-
-	return jwtDTO, nil
+	return service.completeLogin(ctx, user, models.UserRole, user.ID, user.TwoFaEnabled)
 }
 
-func (service *LoginService) AdminLoginViaPassword(ctx context.Context) (*JwtDTO, error) {
-	req, ok := ctx.Value("req").(*Authentication.LoginRequest)
+func (service *LoginService) AdminLoginViaPassword(ctx context.Context) (*LoginResult, error) {
+	req, ok := ctx.Value("req").(*adminLogin.LoginViaPasswordRequest)
 	if !ok {
-		logger.LogErrorWithFieldsV2(ctx, "failed to read login request", service, nil)
+		logger.LogErrorWithFieldsV2(ctx, "failed to read admin login request", service, nil)
 		return nil, errs.ErrAuthenticationFailed
 	}
 
-	user, err := service.AdminService.GetByNationalIdentityCode(ctx, req.NationalIdentityCode)
+	admin, err := service.AdminService.GetByUsername(ctx, req.Username)
 	if err != nil {
-		logger.LogErrorWithFieldsV2(ctx, "user not found with NIC", service, err)
+		logger.LogErrorWithFieldsV2(ctx, "admin not found with username", service, err)
 		return nil, errs.ErrAuthenticationFailed
 	}
 
-	passwordOK, err := hash.VerifyStoredHash(user.Password, req.Password)
+	if admin.IsActive == nil || !*admin.IsActive {
+		logger.LogErrorWithFieldsV2(ctx, "admin is deactivated", service, errs.ErrDeactivatedAdmin)
+		return nil, errs.ErrDeactivatedAdmin
+	}
+
+	passwordOK, err := hash.VerifyStoredHash(admin.Password, req.Password)
 	if err != nil || !passwordOK {
 		logger.LogErrorWithFieldsV2(ctx, "password mismatch", service, err)
 		return nil, errs.ErrAuthenticationFailed
 	}
 
-	ownerType := "admin"
+	return service.completeLogin(ctx, admin, models.AdminRole, admin.ID, admin.TwoFaEnabled)
+}
+
+func (service *LoginService) VerifyTwoFactorLogin(ctx context.Context) (*JwtDTO, error) {
+	req, ok := ctx.Value("req").(*Authentication.VerifyTwoFa)
+	if !ok {
+		logger.LogErrorWithFieldsV2(ctx, "failed to read two factor login request", service, nil)
+		return nil, errs.ErrAuthenticationFailed
+	}
+	if req.TwoFaCode == "" && req.RecoveryCode == "" {
+		return nil, errs.ErrTwoFactorChallengeMissing
+	}
+
+	res, err := cache.GetInstance().GetClient().Get(ctx, twoFaLoginCacheKey(req.LoginKey)).Result()
+	if err != nil {
+		if utils.CheckError(err, redis.Nil) {
+			logger.LogErrorWithFieldsV2(ctx, "two factor login state expired", service, err)
+			return nil, errs.ErrLoginTimeOut
+		}
+		logger.LogErrorWithFieldsV2(ctx, "failed to load two factor login state", service, err)
+		return nil, errs.ErrAuthenticationFailed
+	}
+
+	var state twoFaLoginState
+	if err = json.Unmarshal([]byte(res), &state); err != nil {
+		logger.LogErrorWithFieldsV2(ctx, "failed to unmarshal two factor login state", service, err)
+		return nil, errs.SomeThingWentWrong
+	}
+
+	ctx = context.WithValue(ctx, consts.OwnerType, state.OwnerType)
+	ctx = context.WithValue(ctx, consts.OwnerId, state.OwnerID)
+
+	if req.TwoFaCode != "" {
+		if err = service.TwoFaService.VerifyCode(ctx, state.OwnerID, req.TwoFaCode); err != nil {
+			logger.LogErrorWithFieldsV2(ctx, "failed to verify two factor code during login", service, err)
+			return nil, err
+		}
+	} else if err = service.TwoFaService.VerifyRecoveryCode(ctx, state.OwnerID, req.RecoveryCode); err != nil {
+		logger.LogErrorWithFieldsV2(ctx, "failed to verify recovery code during login", service, err)
+		return nil, err
+	}
+
+	owner, err := service.loadLoginOwner(ctx, state.OwnerType, state.OwnerID)
+	if err != nil {
+		return nil, err
+	}
+
+	tokens, err := service.issueTokens(ctx, owner, state.OwnerType)
+	if err != nil {
+		return nil, err
+	}
+
+	_ = cache.GetInstance().GetClient().Del(ctx, twoFaLoginCacheKey(req.LoginKey)).Err()
+	return tokens, nil
+}
+
+func (service *LoginService) completeLogin(ctx context.Context, owner interface{}, ownerType string, ownerID uint, twoFaEnabled bool) (*LoginResult, error) {
+	if twoFaEnabled {
+		loginKey, err := service.saveTwoFaLoginState(ctx, ownerID, ownerType)
+		if err != nil {
+			return nil, err
+		}
+		return &LoginResult{TwoFaRequired: true, LoginKey: loginKey}, nil
+	}
+
+	tokens, err := service.issueTokens(ctx, owner, ownerType)
+	if err != nil {
+		return nil, err
+	}
+	return &LoginResult{Tokens: tokens}, nil
+}
+
+func (service *LoginService) issueTokens(ctx context.Context, owner interface{}, ownerType string) (*JwtDTO, error) {
 	jwtDTO, err := service.JwtService.Generate(ctx, ownerType)
 	if err != nil {
 		logger.LogErrorWithFieldsV2(ctx, "jwt generation failed", service, err)
 		return nil, errs.ErrAuthenticationFailed
 	}
 
-	ip := ctx.Value("request-ip").(string)
-	userAgent := ctx.Value("request-user-agent").(string)
+	ip, _ := ctx.Value("request-ip").(string)
+	userAgent, _ := ctx.Value("request-user-agent").(string)
 
-	_, err = service.AccessTokenService.Create(ctx, user, jwtDTO, ip, userAgent)
+	_, err = service.AccessTokenService.Create(ctx, owner, jwtDTO, ip, userAgent)
 	if err != nil {
 		logger.LogErrorWithFieldsV2(ctx, "db token insert failed", service, err)
 		return nil, errs.ErrAuthenticationFailed
 	}
-
 	return jwtDTO, nil
+}
+
+func (service *LoginService) saveTwoFaLoginState(ctx context.Context, ownerID uint, ownerType string) (string, error) {
+	payload, err := json.Marshal(twoFaLoginState{OwnerID: ownerID, OwnerType: ownerType})
+	if err != nil {
+		logger.LogErrorWithFieldsV2(ctx, "failed to marshal two factor login state", service, err)
+		return "", errs.SomeThingWentWrong
+	}
+
+	expiration, err := strconv.Atoi(config.GetInstance().Get("LOGIN_SAVE_STATE_LIFETIME"))
+	if err != nil {
+		expiration = 300
+	}
+
+	loginKey := uuid.Generate().String()
+	if err = cache.GetInstance().GetClient().Set(ctx, twoFaLoginCacheKey(loginKey), payload, time.Duration(expiration)*time.Second).Err(); err != nil {
+		logger.LogErrorWithFieldsV2(ctx, "failed to save two factor login state", service, err)
+		return "", errs.SomeThingWentWrong
+	}
+	return loginKey, nil
+}
+
+func (service *LoginService) loadLoginOwner(ctx context.Context, ownerType string, ownerID uint) (interface{}, error) {
+	switch ownerType {
+	case models.AdminRole:
+		admin, err := service.AdminService.GetById(ctx, ownerID)
+		if err != nil {
+			logger.LogErrorWithFieldsV2(ctx, "failed to get admin for two factor login", service, err)
+			return nil, errs.ErrAuthenticationFailed
+		}
+		return admin, nil
+	default:
+		user, err := service.UserService.GetById(ctx, ownerID)
+		if err != nil {
+			logger.LogErrorWithFieldsV2(ctx, "failed to get user for two factor login", service, err)
+			return nil, errs.ErrAuthenticationFailed
+		}
+		return user, nil
+	}
+}
+
+func twoFaLoginCacheKey(loginKey string) string {
+	return "login-2fa-" + loginKey
 }

@@ -33,13 +33,14 @@ func ProvideRegisterService(userService *services.UserService, otpService *servi
 	}
 }
 
-func ProvideLoginService(userService *services.UserService, jwtService *authServices.JwtService, accessTokenService *authServices.AccessTokenService, otpService *services.OTPService, adminService *services.AdminService) *authServices.LoginService {
+func ProvideLoginService(userService *services.UserService, jwtService *authServices.JwtService, accessTokenService *authServices.AccessTokenService, otpService *services.OTPService, adminService *services.AdminService, twoFaService *authServices.TwoFaService) *authServices.LoginService {
 	return &authServices.LoginService{
 		UserService:        userService,
 		JwtService:         jwtService,
 		AccessTokenService: accessTokenService,
 		OTPService:         otpService,
 		AdminService:       adminService,
+		TwoFaService:       twoFaService,
 	}
 }
 
@@ -80,10 +81,11 @@ func ProvideUserTwoFactorAutController(twoFactorAuth *authServices.TwoFaService)
 	}
 }
 
-func ProvideTwoFactorService(userService *services.UserService, otpService *services.OTPService) *authServices.TwoFaService {
+func ProvideTwoFactorService(userService *services.UserService, adminService *services.AdminService, otpService *services.OTPService) *authServices.TwoFaService {
 	return &authServices.TwoFaService{
-		UserService: userService,
-		OTPService:  otpService,
+		UserService:  userService,
+		AdminService: adminService,
+		OTPService:   otpService,
 	}
 }
 

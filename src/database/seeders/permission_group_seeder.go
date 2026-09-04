@@ -19,22 +19,31 @@ func SeedPermissionGroup() {
 	if err := db.Where("name = ?", "admin-show").Find(&defaultPermissions).Error; err != nil {
 		log.Fatalf("Failed to fetch default permissions: %v", err)
 	}
-	groups := []models.PermissionGroupModel{{
-		Name:        "all-permissions",
-		Title:       datatypes.JSON(`{"fa": "تمام دسترسی ها"}`),
-		Permissions: allPermissions,
-	},
+
+	groups := []models.PermissionGroupModel{
+		{
+			Name:        "all-permissions",
+			Title:       datatypes.JSON(`{"fa": "تمام دسترسی ها"}`),
+			Permissions: allPermissions,
+		},
 		{
 			Name:        "default-permission-group",
 			Title:       datatypes.JSON(`{"fa": "گروه دسترسی پایه"}`),
 			Permissions: defaultPermissions,
 		},
 	}
+
 	for _, group := range groups {
-		if err := db.FirstOrCreate(&group, models.PermissionGroupModel{Name: group.Name}).Error; err != nil {
+		var existing models.PermissionGroupModel
+		if err := db.Where("name = ?", group.Name).
+			Assign(models.PermissionGroupModel{Title: group.Title}).
+			FirstOrCreate(&existing, models.PermissionGroupModel{Name: group.Name, Title: group.Title}).Error; err != nil {
 			log.Fatalf("Failed to create permission group: %v", err)
 		}
 
+		if err := db.Model(&existing).Association("Permissions").Replace(group.Permissions); err != nil {
+			log.Fatalf("Failed to assign permissions to group %s: %v", group.Name, err)
+		}
 	}
 
 	log.Println("Permission group seeded successfully.")

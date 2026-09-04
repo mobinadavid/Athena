@@ -8,12 +8,12 @@ import (
 )
 
 func AuthenticationRouter(router *gin.RouterGroup) {
-	// get container
 	loginController := providers.GetAuthenticationContainer().UserLoginController
 	registerController := providers.GetAuthenticationContainer().UserRegisterController
 	recoverPasswordController := providers.GetAuthenticationContainer().UserRecoveryPasswordController
+	twoFaController := providers.GetAuthenticationContainer().UserTwoFaAuthController
+	authMiddleware := providers.GetAuthenticationContainer().AuthenticationMiddleware
 
-	// get rate limiter for register
 	registerVerifyOTPRateLimiter := providers.ProvideRateLimiterMiddleware(
 		providers.ProvideRateLimiterService(),
 	).SetLimiter(services.RegisterCriticalLimiter()).SetKey(services.GenericCriticalKeyGetter("register-verify-otp"))
@@ -22,7 +22,6 @@ func AuthenticationRouter(router *gin.RouterGroup) {
 		providers.ProvideRateLimiterService(),
 	).SetLimiter(services.CriticalLimiter()).SetKey(services.GenericCriticalKeyGetter("register-resend-otp"))
 
-	// get rate limiter for login
 	loginVerifyOTPRateLimiter := providers.ProvideRateLimiterMiddleware(
 		providers.ProvideRateLimiterService(),
 	).SetLimiter(services.LoginCriticalLimiter()).SetKey(services.GenericCriticalKeyGetter("login-verify-otp"))
@@ -31,7 +30,14 @@ func AuthenticationRouter(router *gin.RouterGroup) {
 		providers.ProvideRateLimiterService(),
 	).SetLimiter(services.LoginCriticalLimiter()).SetKey(services.GenericCriticalKeyGetter("login-via-otp"))
 
-	// get rate limiter for recover password
+	loginViaPasswordRateLimiter := providers.ProvideRateLimiterMiddleware(
+		providers.ProvideRateLimiterService(),
+	).SetLimiter(services.LoginCriticalLimiter()).SetKey(services.GenericCriticalKeyGetter("user-login"))
+
+	loginVerifyTwoFaRateLimiter := providers.ProvideRateLimiterMiddleware(
+		providers.ProvideRateLimiterService(),
+	).SetLimiter(services.LoginCriticalLimiter()).SetKey(services.GenericCriticalKeyGetter("user-login-2fa"))
+
 	recoverPasswordRateLimiter := providers.ProvideRateLimiterMiddleware(
 		providers.ProvideRateLimiterService(),
 	).SetLimiter(services.CriticalLimiter()).SetKey(services.GenericCriticalKeyGetter("register"))
@@ -48,10 +54,8 @@ func AuthenticationRouter(router *gin.RouterGroup) {
 		providers.ProvideRateLimiterService(),
 	).SetLimiter(services.CriticalLimiter()).SetKey(services.GenericCriticalKeyGetter("register-resend-otp"))
 
-	// define route
 	authentication := router.Group("authentication")
 
-	// register
 	register := authentication.Group("register")
 	{
 		register.POST("send-otp", registerController.Register)
@@ -59,22 +63,30 @@ func AuthenticationRouter(router *gin.RouterGroup) {
 		register.POST("resend-otp", registerResendOTPRateLimiter.Middleware, registerController.ResendOTP)
 	}
 
-	// login
 	login := authentication.Group("login")
 	{
-		login.POST("", loginVerifyOTPRateLimiter.Middleware, loginController.LoginViaPassword)
+		login.POST("", loginViaPasswordRateLimiter.Middleware, loginController.LoginViaPassword)
 		login.POST("via-otp/send-otp", loginViaOTPRateLimiter.Middleware, loginController.LoginViaOtpSendOtp)
 		login.POST("via-otp/resend-otp", loginVerifyOTPRateLimiter.Middleware, loginController.ResendOTP)
 		login.POST("via-otp/verify-otp", loginViaOTPRateLimiter.Middleware, loginController.VerifyOTP)
-
+		login.POST("verify-2fa", loginVerifyTwoFaRateLimiter.Middleware, loginController.VerifyTwoFa)
 	}
 
-	// recover password
 	recoverPassword := authentication.Group("recover-password")
 	{
 		recoverPassword.POST("", recoverPasswordRateLimiter.Middleware, recoverPasswordController.RecoverPassword)
 		recoverPassword.POST("verify-otp", recoverPasswordVerifyOTPRateLimiter.Middleware, recoverPasswordController.VerifyOtpRecoverPassword)
 		recoverPassword.POST("set-password", recoverPasswordSetPasswordRateLimiter.Middleware, recoverPasswordController.SetPassword)
 		recoverPassword.POST("resend-otp", recoverPasswordResendOTPRateLimiter.Middleware, recoverPasswordController.ResendOTP)
+	}
+
+	profile := router.Group("profile")
+	profile.Use(authMiddleware.Middleware("user"))
+	{
+		twoFa := profile.Group("2fa")
+		twoFa.GET("status", twoFaController.Status)
+		twoFa.POST("enable", twoFaController.Enable)
+		twoFa.POST("enable/verify", twoFaController.VerifyCode)
+		twoFa.POST("disable", twoFaController.Disable)
 	}
 }

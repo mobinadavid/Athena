@@ -25,7 +25,7 @@ func SeedAdmins() {
 
 		var superAdminRole models.RoleModel
 		database.GetInstance().GetClient().Where("name = ?", models.SuperAdminRole).Find(&superAdminRole)
-		database.GetInstance().GetClient().Model(&admin).Association("Roles").Append(&superAdminRole)
+		database.GetInstance().GetClient().Model(&admin).Association("Roles").Replace(&superAdminRole)
 	}
 
 	log.Println("Admin Seeder executed successfully.")

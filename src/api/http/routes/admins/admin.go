@@ -58,11 +58,6 @@ func RegisterAdminRouter(router *gin.RouterGroup) {
 		adminContainer.AdminController.Delete,
 	)
 
-	admin.GET("totp",
-		authorizationContainer.AuthorizationMiddleware.Middleware("admin-show"),
-		adminContainer.AdminController.GetProfile,
-	)
-
 	changePasswordRoutes := admin.Group("change-password")
 	{
 		changePasswordRoutes.POST("send-otp",

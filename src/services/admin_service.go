@@ -8,7 +8,6 @@ import (
 	"athena/src/config"
 	"athena/src/database"
 	"athena/src/database/scopes"
-	"athena/src/encrypt"
 	"athena/src/hash"
 	"athena/src/models"
 	"athena/src/pkg/logger"
@@ -26,7 +25,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/pquerna/otp/totp"
 )
 
 type IAdminService interface {
@@ -183,8 +181,7 @@ func (service *AdminService) GetByUsername(ctx context.Context, username string)
 }
 
 func (service *AdminService) Create(ctx context.Context, request *AdminRequests.CreateAdminRequest, creatorAdminID uint) (*models.AdminModel, error) {
-	creatorAdmin, err := service.AdminRepository.GetById(creatorAdminID)
-	if err != nil {
+	if _, err := service.AdminRepository.GetById(creatorAdminID); err != nil {
 		logger.LogErrorWithFieldsV2(ctx, "failed to get admin by id", service, err)
 		return nil, errs.SomeThingWentWrong
 	}
@@ -192,35 +189,14 @@ func (service *AdminService) Create(ctx context.Context, request *AdminRequests.
 	re := regexp.MustCompile(`[^a-z0-9_]`)
 	username = re.ReplaceAllString(username, "")
 	request.Username = username
-	secret, err := totp.Generate(totp.GenerateOpts{
-		Issuer:      creatorAdmin.Username,
-		AccountName: request.Username,
-	})
-	if err != nil {
-		logger.LogErrorWithFieldsV2(ctx, "failed to generate secret", service, err)
-		return nil, errs.SomeThingWentWrong
-	}
-	encryptedSecret, err := encrypt.GetInstance().Encrypt([]byte(secret.Secret()))
-	if err != nil {
-		logger.LogErrorWithFieldsV2(ctx, "failed to encrypt secret", service, err)
-		return nil, errs.SomeThingWentWrong
-	}
-	encryptedSecretUrl, err := encrypt.GetInstance().Encrypt([]byte(secret.URL()))
-	if err != nil {
-		logger.LogErrorWithFieldsV2(ctx, "failed to encrypt secret", service, err)
-		return nil, errs.SomeThingWentWrong
-	}
-	// instantiate
 	admin := &models.AdminModel{
-		FirstName:     request.FirstName,
-		LastName:      request.LastName,
-		Mobile:        request.Mobile,
-		Username:      request.Username,
-		Password:      []byte(request.Password),
-		TotpSecret:    encryptedSecret,
-		TwoFaEnabled:  true,
-		TotpSecretUrl: encryptedSecretUrl,
-		IsActive:      request.IsActive,
+		FirstName:    request.FirstName,
+		LastName:     request.LastName,
+		Mobile:       request.Mobile,
+		Username:     request.Username,
+		Password:     []byte(request.Password),
+		TwoFaEnabled: false,
+		IsActive:     request.IsActive,
 	}
 	//if request.ProfileImage != "" {
 	//	admin.AdminImageUuid = request.ProfileImage

@@ -23,7 +23,7 @@ type UserModel struct {
 	TotpSecret       []byte         `json:"-" gorm:"type:bytea; default:null"`
 	TotpSecretUrl    []byte         `json:"-" gorm:"type:bytea; default:null"`
 	TwoFaEnabled     bool           `json:"-" gorm:"type:bool;default:false"`
-	RecoveryCodes    pq.StringArray `gorm:"-"`
+	RecoveryCodes    pq.StringArray `json:"-" gorm:"type:text[];default:null"`
 	// Identities.
 	NationalIdentityCode string `json:"national_identity_code,omitempty" gorm:"type:varchar(255); uniqueIndex; default:null" filter:"true" like:"true"`
 	// Contact information.

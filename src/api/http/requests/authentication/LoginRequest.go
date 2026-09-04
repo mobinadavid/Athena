@@ -19,8 +19,9 @@ type LoginViaOTPSendOtpRequest struct {
 }
 
 type VerifyTwoFa struct {
-	LoginKey  string `json:"login_key" validate:"omitempty"`
-	TwoFaCode string `json:"two_fa_code" validate:"required"`
+	LoginKey     string `json:"login_key" validate:"omitempty"`
+	TwoFaCode    string `json:"two_fa_code" validate:"omitempty"`
+	RecoveryCode string `json:"recovery_code" validate:"omitempty"`
 }
 
 type ChangePasswordRequest struct {

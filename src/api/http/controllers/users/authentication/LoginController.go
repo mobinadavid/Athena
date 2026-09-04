@@ -56,37 +56,12 @@ func (controller *LoginController) LoginViaPassword(c *gin.Context) {
 		response.Api(c).SetMessage(err.Error()).SetLog().Send()
 		return
 	}
-
-	expSeconds, err := strconv.Atoi(config.GetInstance().Get("COOKIE_EXPIRATION"))
-	if err != nil {
-		logger.LogAToIError(c, err)
-		response.Api(c).SetMessage(errs.SomeThingWentWrong.Error()).SetLog().Send()
+	if jwtDTO.TwoFaRequired {
+		sendTwoFaRequired(c, jwtDTO.LoginKey)
 		return
 	}
 
-	expiration := time.Now().Add(time.Duration(expSeconds) * time.Second)
-
-	cookie := &http.Cookie{
-		Name:     config.GetInstance().Get("COOKIE_NAME"),
-		Value:    jwtDTO.RefreshTokenString,
-		Path:     "/",
-		Domain:   config.GetInstance().Get("COOKIE_HOST"),
-		Secure:   true,
-		HttpOnly: true,
-		SameSite: http.SameSiteNoneMode,
-		Expires:  expiration,
-	}
-
-	http.SetCookie(c.Writer, cookie)
-	c.Header("Set-Cookie", cookie.String())
-
-	response.Api(c).
-		SetMessage("welcome").
-		SetStatusCode(http.StatusOK).
-		SetData(map[string]interface{}{
-			"access_tokens": jwtDTO,
-		}).
-		SetLog().Send()
+	sendLoginTokens(c, jwtDTO.Tokens)
 }
 
 func (controller *LoginController) LoginViaOtpSendOtp(c *gin.Context) {
@@ -272,7 +247,7 @@ func (controller *LoginController) VerifyOTP(c *gin.Context) {
 	ctx = context.WithValue(ctx, consts.OwnerType, models.UserRole)
 	ctx = context.WithValue(ctx, consts.RequestUuid, c.GetString("request-uuid"))
 
-	jwt, err := controller.LoginService.UserLoginVerifyOTP(ctx)
+	result, err := controller.LoginService.UserLoginVerifyOTP(ctx)
 	if err != nil {
 		logger.LogServiceV2(c, "failed to get access token via otp", controller, err)
 
@@ -284,18 +259,86 @@ func (controller *LoginController) VerifyOTP(c *gin.Context) {
 		response.Api(c).SetMessage(err.Error()).SetLog().Send()
 		return
 	}
+	if result.TwoFaRequired {
+		sendTwoFaRequired(c, result.LoginKey)
+		return
+	}
 
-	expirationSeconds, err := strconv.Atoi(config.GetInstance().Get("COOKIE_EXPIRATION"))
+	sendLoginTokens(c, result.Tokens)
+}
+
+func (controller *LoginController) VerifyTwoFa(c *gin.Context) {
+	var req authenticationrequests.VerifyTwoFa
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.LogJSONBindError(c, err)
+		response.Api(c).SetLog().Send()
+		return
+	}
+
+	if err := validator.Validate(&req, c.GetString("locale")); err != nil {
+		logger.LogValidationError(c, err)
+		response.Api(c).SetErrors(err).SetLog().Send()
+		return
+	}
+
+	if req.LoginKey == "" {
+		cookieName := config.GetInstance().Get("LOGIN_COOKIE_KEY_NAME")
+		if cookieName == "" {
+			cookieName = "login_key"
+		}
+		key, err := c.Cookie(cookieName)
+		if err != nil {
+			logger.LogCookieDoesNotExist(c, err, cookieName)
+			response.Api(c).SetMessage(errs.ErrLoginTimeOut.Error()).SetErrorCode(errs.LoginTimeOutErrorCode).SetLog().Send()
+			return
+		}
+		req.LoginKey = key
+	}
+
+	ctx := context.WithValue(context.Background(), "req", &req)
+	ctx = context.WithValue(ctx, "request-ip", c.GetString("request-ip"))
+	ctx = context.WithValue(ctx, "request-user-agent", c.GetHeader("User-Agent"))
+	ctx = context.WithValue(ctx, consts.OwnerType, models.UserRole)
+	ctx = context.WithValue(ctx, consts.RequestUuid, c.GetString("request-uuid"))
+
+	tokens, err := controller.LoginService.VerifyTwoFactorLogin(ctx)
+	if err != nil {
+		logger.LogServiceV2(c, "failed to verify two factor login", controller, err)
+		if utils.CheckError(err, errs.ErrLoginTimeOut) {
+			response.Api(c).SetMessage(err.Error()).SetErrorCode(errs.LoginTimeOutErrorCode).SetLog().Send()
+			return
+		}
+		response.Api(c).SetMessage(err.Error()).SetLog().Send()
+		return
+	}
+
+	sendLoginTokens(c, tokens)
+}
+
+func sendTwoFaRequired(c *gin.Context, loginKey string) {
+	response.Api(c).
+		SetMessage(errs.ErrTwoFactorRequired.Error()).
+		SetErrorCode(errs.UserHasTwoFactorAuthErrorCode).
+		SetStatusCode(http.StatusOK).
+		SetData(map[string]interface{}{
+			"two_fa_required": true,
+			"login_key":       loginKey,
+		}).
+		SetLog().Send()
+}
+
+func sendLoginTokens(c *gin.Context, jwtDTO *authentication.JwtDTO) {
+	expSeconds, err := strconv.Atoi(config.GetInstance().Get("COOKIE_EXPIRATION"))
 	if err != nil {
 		logger.LogAToIError(c, err)
 		response.Api(c).SetMessage(errs.SomeThingWentWrong.Error()).SetLog().Send()
 		return
 	}
 
-	expiration := time.Now().Add(time.Duration(expirationSeconds) * time.Second)
+	expiration := time.Now().Add(time.Duration(expSeconds) * time.Second)
 	cookie := &http.Cookie{
 		Name:     config.GetInstance().Get("COOKIE_NAME"),
-		Value:    jwt.RefreshTokenString,
+		Value:    jwtDTO.RefreshTokenString,
 		Path:     "/",
 		Domain:   config.GetInstance().Get("COOKIE_HOST"),
 		Secure:   true,
@@ -304,14 +347,14 @@ func (controller *LoginController) VerifyOTP(c *gin.Context) {
 		Expires:  expiration,
 	}
 
-	// Set the cookie using http.SetCookie (this should automatically add the cookie to headers)
 	http.SetCookie(c.Writer, cookie)
 	c.Header("Set-Cookie", cookie.String())
 
-	// Return response.
-	response.Api(c).SetMessage("welcome").
+	response.Api(c).
+		SetMessage("welcome").
 		SetStatusCode(http.StatusOK).
 		SetData(map[string]interface{}{
-			"access_tokens": jwt,
-		}).SetLog().Send()
+			"access_tokens": jwtDTO,
+		}).
+		SetLog().Send()
 }

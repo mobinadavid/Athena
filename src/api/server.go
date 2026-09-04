@@ -1,14 +1,16 @@
 package api
 
 import (
-	"athena/src/api/http/routes/admins"
-	users "athena/src/api/http/routes/users"
+	"fmt"
+	"log"
 
 	"athena/src/api/http/middlewares"
 	"athena/src/api/http/routes"
+	"athena/src/api/http/routes/admins"
+	users "athena/src/api/http/routes/users"
 	"athena/src/config"
-	"fmt"
-	"log"
+	"athena/src/providers"
+	"athena/src/services"
 
 	"github.com/gin-contrib/secure"
 	"github.com/gin-gonic/gin"
@@ -39,29 +41,21 @@ func Init() (err error) {
 }
 
 func getNewRouter() *gin.Engine {
-	// set gin to release mode.
 	gin.SetMode(gin.ReleaseMode)
 
-	// Initialize new app.
 	router := gin.New()
-
-	// Attach CORS middleware.
 	router.Use(middlewares.Cors())
-
-	// Attach logger middleware.
 	router.Use(gin.Logger())
-
-	// Attach recovery middleware.
 	router.Use(gin.Recovery())
-
-	// Attach request id middleware.
 	router.Use(middlewares.RequestID)
-
-	// Attach i18n middleware.
 	router.Use(middlewares.I18n)
 
-	if isProduction {
+	globalLimiter := providers.ProvideRateLimiterMiddleware(
+		providers.ProvideRateLimiterService(),
+	).SetLimiter(services.DefaultLimiter()).SetKey(services.DefaultKeyGetter)
+	router.Use(globalLimiter.Middleware)
 
+	if isProduction {
 		router.Use(secure.New(secure.Config{
 			AllowedHosts:          []string{configs.Get("APP_HOST")},
 			SSLRedirect:           true,
@@ -77,7 +71,6 @@ func getNewRouter() *gin.Engine {
 			SSLProxyHeaders:       map[string]string{"X-Forwarded-Proto": "https"},
 		}))
 
-		// Trusted proxies.
 		_ = router.SetTrustedProxies([]string{"https://" + configs.Get("APP_HOST")})
 	}
 
@@ -93,11 +86,9 @@ func initUserServer() error {
 		users.RegisterAccessTokenRouter(v1)
 		routes.BlockchainRouter(v1)
 		routes.WalletAddressRouter(v1)
-		routes.BlockchainExplorerRouter(v1)
 		routes.IpgRouter(v1)
-
 	}
-	// Run App.
+
 	if err := router.RunTLS(
 		fmt.Sprintf(":%s", configs.Get("USER_APP_PORT")),
 		configs.Get("SSL_CERT_PATH"),
@@ -119,13 +110,11 @@ func initAdminServer() error {
 		admins.RegisterUserRouter(v1)
 		admins.RegisterAuthorizationRouter(v1)
 		admins.RegisterAdminRouter(v1)
-		routes.BlockchainRouter(v1)
-		routes.WalletAddressRouter(v1)
-		routes.BlockchainExplorerRouter(v1)
-		routes.IpgRouter(v1)
+		admins.RegisterBlockchainRouter(v1)
+		admins.RegisterBlockchainExplorerRouter(v1)
+		admins.RegisterWalletAddressRouter(v1)
 	}
 
-	// Run App.
 	if err := router.RunTLS(
 		fmt.Sprintf(":%s", configs.Get("ADMIN_APP_PORT")),
 		configs.Get("SSL_CERT_PATH"),

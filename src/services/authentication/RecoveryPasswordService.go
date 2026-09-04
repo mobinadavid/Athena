@@ -55,12 +55,12 @@ func (service *RecoveryPasswordService) RecoveryPasswordRequestOTP(ctx context.C
 		}
 	}
 	if owner == "admin" {
-		user, err := service.AdminService.GetByNationalIdentityCode(ctx, nationalIdentityCode)
+		admin, err := service.AdminService.GetByUsername(ctx, nationalIdentityCode)
 		if err != nil {
-			logger.LogErrorWithFieldsV2(ctx, "failed to get admin by national identity code", service, err)
+			logger.LogErrorWithFieldsV2(ctx, "failed to get admin by username", service, err)
 			return errs.ErrAuthenticationFailed
 		}
-		if user.Mobile != mobile {
+		if admin.Mobile != mobile {
 			logger.LogErrorWithFieldsV2(ctx, "mobile is not valid", service, nil,
 				zap.String("mobile", mobile))
 			return errs.ErrAuthenticationFailed
@@ -114,9 +114,9 @@ func (service *RecoveryPasswordService) RecoveryPasswordViaOTP(ctx context.Conte
 
 	}
 	if owner == "admin" {
-		admin, err := service.AdminService.GetByNationalIdentityCode(ctx, nationalIdentityCode)
+		admin, err := service.AdminService.GetByUsername(ctx, nationalIdentityCode)
 		if err != nil {
-			logger.LogErrorWithFieldsV2(ctx, "failed to get admin by national identity code", service, err)
+			logger.LogErrorWithFieldsV2(ctx, "failed to get admin by username", service, err)
 			return errs.SomeThingWentWrong
 		}
 		otpIsValid, err := service.OTPService.VerifyOTP(ctx, admin.Mobile, otp)

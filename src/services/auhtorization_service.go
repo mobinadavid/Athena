@@ -423,7 +423,12 @@ func (service *AuthorizationService) IsAuthorized(ctx context.Context, userId ui
 
 	// Iterate over user's roles
 	for _, role := range roles {
-		// Check if the role has the specified permission
+		if role.Name == models.SuperAdminRole {
+			return true, nil
+		}
+		if role.IsActive != nil && !*role.IsActive {
+			continue
+		}
 		if roleHasPermission(role, permission) {
 			return true, nil
 		}
@@ -435,14 +440,14 @@ func (service *AuthorizationService) IsAuthorized(ctx context.Context, userId ui
 
 // Helper function to check if a role has a specific permission
 func roleHasPermission(role *models.RoleModel, permission string) bool {
-	// Iterate over role's permissions
 	for _, permissionGroup := range role.PermissionGroups {
+		if permissionGroup.IsActive != nil && !*permissionGroup.IsActive {
+			continue
+		}
 		for _, perm := range permissionGroup.Permissions {
-			// Check if the permission matches
 			if perm.Name == permission {
 				return true
 			}
-
 		}
 	}
 

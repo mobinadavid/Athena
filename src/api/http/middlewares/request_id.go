@@ -8,6 +8,7 @@ import (
 func RequestID(context *gin.Context) {
 	if context.Request != nil {
 		context.Set("request-uuid", uuid.NewString())
+		context.Set("request-ip", context.ClientIP())
 	}
 	context.Next()
 }
