@@ -1,11 +1,13 @@
 package validator
 
 import (
+	"athena/src/database"
 	"athena/src/pkg/i18n"
 	"athena/src/pkg/policies"
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 
 	ut "github.com/go-playground/universal-translator"
@@ -22,6 +24,7 @@ func RegisterRules(val *validator.Validate, trans *ut.UniversalTranslator) {
 		"iranian-mobile":                 iranianMobileValidation,
 		"max-runes":                      validateMaxRunes,
 		"is-strong-password":             isStrongPassword,
+		"exists":                         exists,
 	}
 
 	for ruleName, ruleFunc := range ruleToFunc {
@@ -154,4 +157,32 @@ func isStrongPassword(fl validator.FieldLevel) bool {
 	policyCheck := passwordPolicy.ValidatePassword(fl.Field().String())
 
 	return policyCheck == nil
+}
+
+func exists(fl validator.FieldLevel) bool {
+	value := fl.Field().String()
+
+	// Parse the tag to extract table name and column name
+	tag := fl.Param()
+	parts := strings.Split(tag, ":")
+	if len(parts) != 2 {
+		return false
+	}
+
+	db := database.GetInstance().GetClient()
+
+	if !db.Migrator().HasColumn(parts[0], parts[1]) {
+		return false
+	}
+
+	// Todo: Critical Reminder to check against SQL Injections.
+	query := fmt.Sprintf("%s = ?", parts[1])
+	var count int64
+	err := db.Table(parts[0]).Where(query, value).Count(&count)
+
+	if err.Error != nil {
+		return false
+	}
+
+	return count > 0
 }
