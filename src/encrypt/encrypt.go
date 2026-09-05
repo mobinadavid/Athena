@@ -5,7 +5,7 @@ package encrypt
 import (
 	"athena/src/config"
 	"athena/src/encrypt/drivers"
-	"encoding/base64"
+	"errors"
 	"fmt"
 	"sync"
 )
@@ -31,7 +31,7 @@ func (e *Encryptor) Encrypt(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return []byte(fmt.Sprintf("%s:%s", base64.StdEncoding.EncodeToString([]byte(e.driverName)), encryptedData)), nil
+	return encryptedData, nil
 }
 
 // Decrypt decrypts the provided byte slice using the configured encryption driver.
@@ -91,9 +91,15 @@ func getDriverName(args ...string) string {
 
 // encryptFactory returns an IEncrypt instance based on the driver name.
 func encryptFactory(driverName string) (IEncrypt, error) {
+	key := config.GetInstance().Get("ENCRYPTION_SECRET")
+	if key == "" {
+		return nil, errors.New("ENCRYPTION_SECRET is required")
+	}
 	switch driverName {
 	case "aes":
-		return &drivers.AesEncrypt{}, nil
+		return &drivers.AesEncrypt{
+			Key: []byte(key),
+		}, nil
 	case "openpgp":
 		return &drivers.OpenPgpEncrypt{}, nil
 	case "rsa":

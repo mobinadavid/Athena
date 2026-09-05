@@ -56,7 +56,7 @@ func (repository *UserRepository) GetList(builder *scopes.BuilderModel) (*scopes
 	db := repository.DatabaseHandler.GetClient().Model(results)
 
 	// Apply pagination, filtering, and sorting using the BuilderModel
-	builder.Relations = append(builder.Relations, "Wallet")
+	//builder.Relations = append(builder.Relations, "Wallet")
 	db, err := builder.QueryBuilderScope(db)
 	if err != nil {
 		return nil, fmt.Errorf("user list retrieval failed: %s", err.Error())
