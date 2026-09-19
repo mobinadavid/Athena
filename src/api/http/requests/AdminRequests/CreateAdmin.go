@@ -2,8 +2,8 @@ package AdminRequests
 
 // CreateAdminRequest struct for validating incoming request data for creating a user
 type CreateAdminRequest struct {
-	FirstName    string   `json:"first_name" validate:"required,is-persian-string,max=255"`
-	LastName     string   `json:"last_name" validate:"required,is-persian-string,max=255"`
+	FirstName    string   `json:"first_name" validate:"required,max=255"`
+	LastName     string   `json:"last_name" validate:"required,max=255"`
 	Mobile       string   `json:"mobile" validate:"required,iranian-mobile"`
 	Username     string   `json:"username" validate:"required,max=255,username"`
 	Password     string   `json:"password" validate:"required,max=255,is-strong-password"`

@@ -25,6 +25,8 @@ func RegisterRules(val *validator.Validate, trans *ut.UniversalTranslator) {
 		"max-runes":                      validateMaxRunes,
 		"is-strong-password":             isStrongPassword,
 		"exists":                         exists,
+		"english-only":                   englishOnlyValidation,
+		"username":                       ValidUsername,
 	}
 
 	for ruleName, ruleFunc := range ruleToFunc {
@@ -185,4 +187,22 @@ func exists(fl validator.FieldLevel) bool {
 	}
 
 	return count > 0
+}
+
+// englishOnlyValidation ensures the string contains only English letters, digits, spaces, underscores, and dashes.
+func englishOnlyValidation(fl validator.FieldLevel) bool {
+	value := fl.Field().String()
+	// Regex allows English letters (A-Z, a-z), digits, spaces, underscores, and dashes.
+	matched, _ := regexp.MatchString(`^[A-Za-z0-9 _-]+$`, value)
+	return matched
+}
+
+func ValidUsername(fl validator.FieldLevel) bool {
+	username := fl.Field().String()
+	if len(username) < 3 {
+		return false
+	}
+	// Regex: At least one English letter, optional numbers or special characters
+	matched, _ := regexp.MatchString(`^[a-zA-Z0-9!@#$%^&*()-_+=]*[a-zA-Z][a-zA-Z0-9!@#$%^&*()-_+=]*$`, username)
+	return matched
 }

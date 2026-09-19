@@ -4,7 +4,6 @@ go 1.25.0
 
 require (
 	github.com/docker/distribution v2.8.2+incompatible
-	github.com/gin-contrib/cors v1.7.8
 	github.com/gin-contrib/secure v1.1.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-playground/locales v0.14.1
